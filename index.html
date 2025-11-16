@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mood Classifier — Web Starter (TF.js + Teachable Machine)</title>
+  <!-- Accessibility: readable default fonts and high-contrast base -->
+  <style>
+    :root{--gap:12px;--radius:16px;--shadow:0 6px 20px rgba(0,0,0,.08)}
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Apple SD Gothic Neo,Pretendard,sans-serif;margin:0;background:#f7f7fb;color:#111}
+    header{padding:20px 16px;text-align:center}
+    h1{font-size:22px;margin:0 0 4px}
+    main{max-width:920px;margin:0 auto;padding:0 16px 48px}
+    .grid{display:grid;grid-template-columns:1fr;gap:var(--gap)}
+    @media(min-width:960px){.grid{grid-template-columns:360px 1fr}}
+    .card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+    .row{display:flex;gap:var(--gap);align-items:center;flex-wrap:wrap}
+    button,input[type=file]{padding:10px 14px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer}
+    button:focus, input:focus, select:focus{outline:3px solid #70a6ff44}
+    .primary{background:#111;color:#fff;border-color:#111}
+    .muted{color:#666}
+    .hidden{display:none}
+    .preview{width:100%;aspect-ratio:4/3;border-radius:12px;object-fit:cover;background:#eee}
+    .log{font-family:ui-monospace,Consolas,monospace;background:#0b1020;color:#e5ecff;border-radius:12px;padding:12px;overflow:auto}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef;}
+    progress{width:100%;height:16px}
+    .error{background:#fff0f0;border:1px solid #ffd7d7;color:#820000;padding:10px 12px;border-radius:12px}
+    .good{background:#f0fff4;border:1px solid #d4f5dc;color:#004a1f;padding:10px 12px;border-radius:12px}
+    .kbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    kbd{background:#f0f0f0;border:1px solid #ddd;border-bottom-width:2px;border-radius:6px;padding:2px 6px;font-family:ui-monospace,Consolas,monospace}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  </style>
+  <!-- Teachable Machine Image library & TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1 aria-label="기분 분류기 웹 스타터">😎 Mood Classifier — Web Starter</h1>
+    <p class="muted">입력 → 추론 → 피드백 → 행동 · 상위 K 라벨과 확률 표시 · 낮은 확신 시 가이드 제공</p>
+  </header>
+
+  <main class="grid" id="app">
+    <!-- Controls & Preview -->
+    <section class="card" aria-labelledby="controls-title">
+      <h2 id="controls-title">1) 입력 & 제어</h2>
+      <p class="muted">카메라 또는 파일 중 하나를 사용하세요. 키보드만으로도 조작 가능합니다.</p>
+
+      <div class="row kbar" aria-label="Keyboard shortcuts">
+        <span class="badge">단축키</span>
+        <span><kbd>C</kbd> 카메라 시작/정지</span>
+        <span><kbd>U</kbd> 파일 업로드</span>
+        <span><kbd>R</kbd> 다시 시도</span>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <button id="btnCam" class="primary" aria-pressed="false" aria-controls="video" title="카메라 사용" disabled>카메라 시작</button>
+        <label for="file" class="sr-only">이미지 업로드</label>
+        <input id="file" type="file" accept="image/*" title="이미지 파일 업로드" />
+        <button id="btnReset" title="미리보기 초기화">초기화</button>
+      </div>
+
+      <div style="margin-top:12px" class="row">
+        <video id="video" class="preview hidden" playsinline muted aria-label="카메라 미리보기"></video>
+        <img id="img" class="preview hidden" alt="업로드한 이미지 미리보기" />
+        <canvas id="canvas" class="preview hidden" aria-hidden="true"></canvas>
+      </div>
+
+      <div id="status" class="muted" style="margin-top:8px">대기 중…</div>
+      <div id="msg" class="hidden" role="status" aria-live="polite" style="margin-top:8px"></div>
+    </section>
+
+    <!-- Predictions & Guidance -->
+    <section class="card" aria-labelledby="pred-title" id="pred-section">
+      <h2 id="pred-title">2) 예측 결과</h2>
+      <p class="muted">상위 K 라벨과 확률을 보여줍니다. 확신도가 낮으면 가이드를 제공합니다.</p>
+
+      <div id="progressBox" class="hidden" style="margin-bottom:8px">
+        <label for="progress" class="muted">모델 로딩</label>
+        <progress id="progress" max="100" value="0"></progress>
+      </div>
+
+      <div id="predictions" class="log" style="min-height:140px" aria-live="polite" aria-atomic="true">결과 대기 중…</div>
+      <div id="guidance" class="muted" style="margin-top:10px"></div>
+      <div class="row" style="margin-top:10px">
+        <button id="btnNextWeather" class="primary" disabled>다음: 날씨 선택</button>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <span class="badge">수동 선택</span>
+        <button data-emote="happy"   id="pickHappy"   title="Happy">🙂 Happy</button>
+        <button data-emote="neutral" id="pickNeutral" title="Neutral">😐 Neutral</button>
+        <button data-emote="sad"     id="pickSad"     title="Sad">😢 Sad</button>
+        <button data-emote="angry"   id="pickAngry"   title="Angry">😠 Angry</button>
+      </div>
+    </section>
+
+    <!-- Notes & Errors -->
+    <section class="card" aria-labelledby="notes-title">
+      <h2 id="notes-title">3) 상태 & 에러</h2>
+      <ul id="notes" class="muted" style="line-height:1.6">
+        <li>오류 상태를 인간이 읽을 수 있는 메시지로 알려줍니다.</li>
+        <li>네트워크 끊김 / 권한 거부 / 잘못된 파일 / 모델 미로딩 등을 처리합니다.</li>
+        <li>서버 호출은 없으며, 브라우저에서만 추론합니다(간단한 rate-limit 포함).</li>
+      </ul>
+      <div id="errorBox" class="error hidden" role="alert"></div>
+      <div id="okBox" class="good hidden">정상 동작 중입니다.</div>
+    </section>
+
+    <!-- Step 3: Weather selection (initially hidden) -->
+    <section class="card hidden" id="weather-section" aria-labelledby="weather-title">
+      <h2 id="weather-title">3) 날씨 선택</h2>
+      <p class="muted">오늘 날씨를 골라주세요. (초기 버전은 수동 선택)</p>
+      <div class="row" style="margin-top:8px">
+        <button data-weather="Sunny">☀️ 맑음</button>
+        <button data-weather="Cloudy">⛅ 흐림</button>
+        <button data-weather="Rainy">🌧️ 비</button>
+      </div>
+    </section>
+
+    <!-- Step 4: Final matched card (single) -->
+    <section class="card hidden" aria-labelledby="final-title" id="final-section">
+      <h2 id="final-title">최종 추천</h2>
+      <div id="card-grid" style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px"></div>
+      <div class="row" style="margin-top:12px">
+        <button id="btnRestart">다시 시작</button>
+      </div>
+    </section>
+  </main>
+
+<script>
+  // === 0) 설정값 ===
+  // Teachable Machine 호스팅된 모델 URL (마지막에 '/') 포함
+  const MODEL_URL = "https://teachablemachine.withgoogle.com/models/adfTD5Yf_/";
+  const TOP_K = 3;           // 상위 k 라벨
+  const LOW_CONF = 0.6;      // 낮은 확신 가이드 임계값
+  const CAM_INFER_MS = 300;  // 카메라 추론 주기 (ms) — 간단 rate-limit
+
+  // === 1) DOM 헬퍼 & 요소 참조 ===
+  const el = (id)=>document.getElementById(id);
+  const $status = el('status');
+  const $msg = el('msg');
+  const $video = el('video');
+  const $img = el('img');
+  const $canvas = el('canvas');
+  const $pred = el('predictions');
+  const $guide = el('guidance');
+  const $err = el('errorBox');
+  const $ok = el('okBox');
+  const $progress = el('progress');
+  const $progressBox = el('progressBox');
+
+  const $btnCam = el('btnCam');
+  const $file = el('file');
+  const $btnReset = el('btnReset');
+  const $btnNextWeather = el('btnNextWeather');
+  const $weatherSection = el('weather-section');
+  const $finalSection = el('final-section');
+  const $predSection = el('pred-section');
+  const $btnRestart = el('btnRestart');
+
+  // === 상태 관리 (단계/선택) ===
+  const MOOD_TO_STYLE = { happy:"Active", neutral:"Minimal", sad:"Cozy", angry:"Street" };
+  let step = 1;                // 1: 입력/예측 → 2: 날씨선택 → 3: 최종카드
+  let selectedEmotion = null;  // 'happy' | 'neutral' | 'sad' | 'angry'
+  let selectedStyle = null;    // 'Active' | 'Minimal' | 'Cozy' | 'Street'
+  let selectedWeather = null;  // 'Sunny' | 'Cloudy' | 'Rainy'
+
+  // === 2) 전역 모델/카메라 ===
+  let model, maxPredictions;
+  let webcamStream = null;
+  let inferTimer = null; // 현재는 사용하지 않지만, 추후 setInterval 방식으로 바꿀 때 대비
+  let lastInfer = 0;
+
+  // 접근성: 안내 메시지 표시
+  function announce(html, cls=""){
+    $msg.className = cls || "";
+    $msg.innerHTML = html;
+    $msg.classList.remove('hidden');
+  }
+  function setError(e){
+    $err.textContent = e; $err.classList.remove('hidden'); $ok.classList.add('hidden');
+  }
+  function setOk(t="정상 동작 중입니다."){
+    $ok.textContent = t; $ok.classList.remove('hidden'); $err.classList.add('hidden');
+  }
+
+  // === 3) 모델 로딩 ===
+  async function loadModel(){
+    try{
+      if (typeof tmImage === 'undefined') {
+        throw new Error('Teachable Machine 라이브러리(tmImage)가 로드되지 않았습니다. 네트워크 또는 CDN 차단을 확인하세요.');
+      }
+      if (!window.isSecureContext && !location.hostname.match(/^localhost|127\.0\.0\.1$/)) {
+        console.warn('비보안 컨텍스트: 카메라에는 https/localhost가 필요합니다. (모델 로딩은 가능)');
+      }
+      if(!MODEL_URL || !MODEL_URL.startsWith('http')){
+        throw new Error('모델 URL을 올바르게 설정하세요. (MODEL_URL)');
+      }
+
+      $status.textContent = '모델 로딩 중…';
+      $progressBox.classList.remove('hidden');
+
+      let p=0; const t = setInterval(()=>{p=Math.min(p+8, 96); $progress.value=p;}, 120);
+
+      const modelURL = MODEL_URL + 'model.json';
+      const metadataURL = MODEL_URL + 'metadata.json';
+      try{
+        const [headModel, headMeta] = await Promise.all([
+          fetch(modelURL, { method:'GET' }),
+          fetch(metadataURL, { method:'GET' })
+        ]);
+        if(!headModel.ok) throw new Error('model.json 응답이 '+headModel.status+'입니다. URL 또는 공개설정을 확인하세요.');
+        if(!headMeta.ok) throw new Error('metadata.json 응답이 '+headMeta.status+'입니다. URL 또는 공개설정을 확인하세요.');
+      }catch(pre){
+        clearInterval(t); $progress.value=0; $progressBox.classList.add('hidden');
+        throw pre;
+      }
+
+      model = await tmImage.load(modelURL, metadataURL);
+      clearInterval(t); $progress.value = 100; setTimeout(()=>{$progressBox.classList.add('hidden');}, 300);
+
+      maxPredictions = model.getTotalClasses();
+      setOk('모델이 로드되었습니다. ('+maxPredictions+' classes)');
+      $btnCam.disabled = false; 
+      $status.textContent = '준비 완료. 입력을 선택하세요.';
+    }catch(e){
+      console.error(e); setError('모델을 불러오지 못했습니다: '+ e.message);
+      $status.textContent = '에러로 중단됨';
+    }
+  }
+
+  // === 4) 파일 업로드 ===
+  $file.addEventListener('change', async (ev)=>{
+    try{
+      const f = ev.target.files && ev.target.files[0];
+      if(!f){announce('파일이 선택되지 않았습니다.','muted');return}
+      if(!f.type.startsWith('image/')){setError('유효한 이미지 파일이 아닙니다.');return}
+
+      stopCamera();
+      $video.classList.add('hidden');
+      $img.classList.remove('hidden');
+      const url = URL.createObjectURL(f);
+      $img.src = url;
+      $img.onload = ()=> URL.revokeObjectURL(url);
+
+      await predictOnce($img);
+    }catch(e){setError('파일 예측 중 오류: '+ e.message)}
+  });
+
+  // === 5) 카메라 ===
+  async function startCamera(){
+    try{
+      stopCamera();
+      $status.textContent = '카메라 권한 요청 중…';
+      webcamStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
+      $video.srcObject = webcamStream;
+      $video.muted = true;
+      $video.setAttribute('playsinline','');
+      await $video.play();
+
+      $img.classList.add('hidden');
+      $video.classList.remove('hidden');
+
+      if ($video.readyState >= 2) {
+        startPredictLoop();
+      } else {
+        $video.addEventListener('loadeddata', startPredictLoop, { once:true });
+      }
+
+      $status.textContent = '카메라 입력 중…';
+      $btnCam.textContent = '카메라 정지';
+      $btnCam.setAttribute('aria-pressed','true');
+    }catch(e){
+      console.error(e);
+      setError('카메라를 시작할 수 없습니다(권한 거부 또는 기기 미지원).');
+    }
+  }
+
+  function stopCamera(){
+    if(inferTimer){clearInterval(inferTimer); inferTimer=null}
+    if(webcamStream){
+      webcamStream.getTracks().forEach(t=>t.stop());
+      webcamStream = null;
+    }
+    $btnCam.textContent = '카메라 시작';
+    $btnCam.setAttribute('aria-pressed','false');
+  }
+
+  // === 5-b) rAF inference loop ===
+  function startPredictLoop(){
+    if(!model || !$video || !webcamStream) return;
+    const loop = (ts) => {
+      if(!webcamStream) return;
+      if (ts - lastInfer >= CAM_INFER_MS) {
+        lastInfer = ts;
+        predictOnce($video).catch(console.warn);
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+
+  $btnCam.addEventListener('click',()=>{
+    if(webcamStream) stopCamera(); else startCamera();
+  });
+
+  // 수동 감정 선택 버튼들
+  ['pickHappy','pickNeutral','pickSad','pickAngry'].forEach(id=>{
+    const elBtn = document.getElementById(id);
+    if(!elBtn) return;
+    elBtn.addEventListener('click',()=>{
+      const m = elBtn.getAttribute('data-emote');
+      if(m){ setEmotionAndEnableNext(m); }
+    });
+  });
+
+  // 다음: 날씨 선택 버튼
+  $btnNextWeather.addEventListener('click',()=>{
+    gotoWeatherStep();
+  });
+
+  // 날씨 선택 버튼들
+  $weatherSection.querySelectorAll('button[data-weather]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      selectedWeather = btn.getAttribute('data-weather');
+      showFinalCard();
+    });
+  });
+
+  // 다시 시작
+  $btnRestart.addEventListener('click',()=>{
+    selectedEmotion = null; selectedStyle = null; selectedWeather = null; step = 1;
+    $predSection.classList.remove('hidden');
+    $weatherSection.classList.add('hidden');
+    $finalSection.classList.add('hidden');
+    $pred.textContent = '결과 대기 중…';
+    $guide.textContent = '';
+    $btnNextWeather.disabled = true;
+    stopCamera();
+    $video.classList.add('hidden');
+    $img.classList.add('hidden');
+    setOk('처음부터 다시 시작합니다.');
+  });
+
+  // === 6) 초기화 ===
+  $btnReset.addEventListener('click',()=>{
+    stopCamera();
+    $video.classList.add('hidden');
+    $img.src = '';
+    $img.classList.add('hidden');
+    $pred.textContent = '결과 대기 중…';
+    $guide.textContent = '';
+    setOk(); announce('초기화 완료','muted');
+  });
+
+  // === 7) 예측 ===
+  async function predictOnce(sourceEl){
+    if(!model){announce('먼저 모델을 로드하세요.','muted');return}
+    const W=224, H=224;
+    $canvas.width=W; $canvas.height=H;
+    const ctx=$canvas.getContext('2d');
+    ctx.drawImage(sourceEl,0,0,W,H);
+
+    const predictions = await model.predict($canvas);
+    const sorted = predictions.sort((a,b)=>b.probability - a.probability).slice(0, TOP_K);
+
+    const lines = sorted.map(p=>{
+      const pct = (p.probability*100).toFixed(1);
+      return `${p.className.padEnd(12,' ')}  ${pct}%`;
+    });
+    $pred.textContent = lines.join('\n');
+
+    const best = sorted[0];
+    if(best && best.probability < LOW_CONF){
+      $guide.innerHTML = '확신도가 낮습니다. <strong>배경 단순화</strong>, <strong>조명 보강</strong>, <strong>프레임 채우기</strong> 후 다시 시도해보세요.';
+    }else{
+      $guide.textContent = '';
+    }
+
+// 예측된 라벨을 감정으로 자동 매핑 시도 (예: Happy, Neutral, Sad, Angry)
+if (best) {
+  const label = (best.className || '').toLowerCase();
+  let emote = null;
+  if(label.startsWith('happy') || label.includes('happy')) emote = 'happy';
+  else if(label.startsWith('neutral') || label.includes('neutral')) emote = 'neutral';
+  else if(label.startsWith('sad') || label.includes('sad')) emote = 'sad';
+  else if(label.startsWith('angry') || label.includes('angry')) emote = 'angry';
+
+  if(emote){
+    setEmotionAndEnableNext(emote);
+  }
+}
+
+    setOk();
+  }
+
+  // === 7-b) 감정/단계 보조 함수 ===
+  function setEmotionAndEnableNext(emote){
+    selectedEmotion = emote;
+    selectedStyle = MOOD_TO_STYLE[emote] || null;
+    $btnNextWeather.disabled = !selectedStyle;
+    if(selectedStyle){
+      announce(`감정: <strong>${emote}</strong> → 스타일: <strong>${selectedStyle}</strong>`, 'muted');
+    }
+  }
+
+  function gotoWeatherStep(){
+    if(!selectedStyle){
+      announce('먼저 감정을 선택하거나 표정 인식을 완료하세요.','muted');
+      return;
+    }
+    step = 2;
+    $predSection.classList.add('hidden');
+    $weatherSection.classList.remove('hidden');
+    $finalSection.classList.add('hidden');
+  }
+
+  function showFinalCard(){
+    if(!selectedStyle || !selectedWeather){
+      announce('스타일 또는 날씨 정보가 부족합니다. 다시 선택해주세요.','muted');
+      return;
+    }
+    const target = RECOMMENDATIONS.find(card=>
+      card.mood === selectedStyle && card.weather === selectedWeather
+    );
+    const list = target ? [target] : [];
+    renderCards(list);
+    step = 3;
+    $predSection.classList.add('hidden');
+    $weatherSection.classList.add('hidden');
+    $finalSection.classList.remove('hidden');
+  }
+
+  // === 8) 단축키 접근성 ===
+  document.addEventListener('keydown',(e)=>{
+    if(e.key==='c' || e.key==='C'){ e.preventDefault(); $btnCam.click(); }
+    if(e.key==='u' || e.key==='U'){ e.preventDefault(); $file.click(); }
+    if(e.key==='r' || e.key==='R'){ e.preventDefault(); $btnReset.click(); }
+  });
+
+  // === 9) 네트워크 상태 반영 ===
+  function updateOnline(){
+    if(navigator.onLine){ setOk('온라인 — 모델 동작 가능'); }
+    else{ setError('오프라인 — 최초 로딩에는 인터넷이 필요합니다.'); }
+  }
+  window.addEventListener('online', updateOnline);
+  window.addEventListener('offline', updateOnline);
+
+  // === 10) 시작 ===
+  (async ()=>{
+    updateOnline();
+    await loadModel();
+  })();
+
+  // ====== 11) 카드 데이터 (텍스트 전용 + 대표 이미지 경로) ======
+  const RECOMMENDATIONS = [
+    // Active × 3
+    { id:"active_sunny",  title:"Active × Sunny",  mood:"Active",  weather:"Sunny",
+      hero:"assets_img/active_sunny.jpg",
+      palette_text:"Red / Orange / Yellow (high energy)",
+      items:["면 티셔츠","미니스커트","스니커즈"],
+      accessories:["선글라스","캡 모자","비즈 팔찌"],
+      description:"햇살과 잘 어울리는 밝고 자유로운 에너지." },
+
+    { id:"active_cloudy", title:"Active × Cloudy", mood:"Active", weather:"Cloudy",
+      hero:"assets_img/active_cloudy.jpg",
+      palette_text:"Red / Orange / Yellow (slightly toned)",
+      items:["티셔츠 + 얇은 가디건","라이트 팬츠"],
+      accessories:["버킷햇","가벼운 크로스백"],
+      description:"구름 낀 날엔 얇은 레이어로 활동성 유지." },
+
+    { id:"active_rainy",  title:"Active × Rainy",  mood:"Active",  weather:"Rainy",
+      hero:"assets_img/active_rainy.jpg",
+      palette_text:"Red / Orange / Yellow (with neutral outer)",
+      items:["라이트 레인재킷","롱팬츠","방수 스니커즈"],
+      accessories:["우산/버킷햇","실용적 백팩"],
+      description:"방수 아우터에 밝은 이너로 활기를 살리기." },
+
+    // Minimal × 3
+    { id:"minimal_sunny", title:"Minimal × Sunny", mood:"Minimal", weather:"Sunny",
+      hero:"assets_img/minimal_sunny.jpg",
+      palette_text:"Beige / Light Blue / White (clean)",
+      items:["라이트 블루 셔츠","화이트 팬츠"],
+      accessories:["미니 레더 토트","심플 메탈 시계"],
+      description:"밝은 톤온톤으로 깔끔하고 정돈된 인상." },
+
+    { id:"minimal_cloudy", title:"Minimal × Cloudy", mood:"Minimal", weather:"Cloudy",
+      hero:"assets_img/minimal_cloudy.jpg",
+      palette_text:"Beige / Light Blue / White (balanced)",
+      items:["셔츠 + 가디건","치노 팬츠"],
+      accessories:["슬림 벨트","미니멀 스니커즈"],
+      description:"구름 낀 날엔 중간 톤 레이어로 안정감." },
+
+    { id:"minimal_rainy", title:"Minimal × Rainy", mood:"Minimal", weather:"Rainy",
+      hero:"assets_img/minimal_rainy.jpg",
+      palette_text:"Beige / Light Blue / White (water-friendly)",
+      items:["베이지 트렌치","셔츠","슬랙스"],
+      accessories:["미니 토트백","메탈 시계"],
+      description:"비 오는 날에도 실루엣은 간결하게." },
+
+    // Cozy × 3
+    { id:"cozy_sunny",   title:"Cozy × Sunny",   mood:"Cozy",   weather:"Sunny",
+      hero:"assets_img/cozy_sunny.jpg",
+      palette_text:"Navy / Black / Gray (lightweight cozy)",
+      items:["라이트 니트","릴랙스드 팬츠"],
+      accessories:["소프트 머플러(가벼운 소재)","캔버스 백"],
+      description:"가벼운 니트와 부드러운 톤으로 편안함." },
+
+    { id:"cozy_cloudy",  title:"Cozy × Cloudy",  mood:"Cozy",   weather:"Cloudy",
+      hero:"assets_img/cozy_cloudy.jpg",
+      palette_text:"Navy / Black / Gray (warm)",
+      items:["니트","코트"],
+      accessories:["머플러","따뜻한 소재의 가방"],
+      description:"저채도 톤과 포근한 질감으로 안정감." },
+
+    { id:"cozy_rainy",   title:"Cozy × Rainy",   mood:"Cozy",   weather:"Rainy",
+      hero:"assets_img/cozy_rainy.jpg",
+      palette_text:"Navy / Black / Gray (weather-care)",
+      items:["후드 코트","다크 진"],
+      accessories:["방수 부츠(첼시)","우산"],
+      description:"방수+보온으로 포근함을 지키기." },
+
+    // Street × 3
+    { id:"street_sunny", title:"Street × Sunny", mood:"Street", weather:"Sunny",
+      hero:"assets_img/street_sunny.jpg",
+      palette_text:"Purple / Brown / Green (light mix)",
+      items:["그래픽 티","카고 쇼츠"],
+      accessories:["캡","체인 브레이슬릿"],
+      description:"가벼운 소재에 스트리트 포인트 컬러." },
+
+    { id:"street_cloudy", title:"Street × Cloudy", mood:"Street", weather:"Cloudy",
+      hero:"assets_img/street_cloudy.jpg",
+      palette_text:"Purple / Brown / Green (muted)",
+      items:["오버핏 후디","와이드 팬츠"],
+      accessories:["볼드 스니커즈","크로스백"],
+      description:"무채색 날씨엔 실루엣으로 존재감." },
+
+    { id:"street_rainy", title:"Street × Rainy", mood:"Street", weather:"Rainy",
+      hero:"assets_img/street_rainy.jpg",
+      palette_text:"Purple / Brown / Green (tech mix)",
+      items:["레인 재킷","카고 팬츠"],
+      accessories:["버킷햇(방수)","하이그립 스니커즈"],
+      description:"테크웨어 요소로 강렬함과 실용성 모두." }
+  ];
+
+  // ====== 12) 카드 렌더링 ======
+  const grid = document.getElementById('card-grid');
+  function renderCards(list){
+    if(!grid || !Array.isArray(list)) return;
+    grid.style.gridTemplateColumns = window.innerWidth>=960 ? '1fr 1fr' : '1fr';
+    grid.innerHTML='';
+    list.forEach(card=>{
+      const el=document.createElement('article');
+      el.className='rec-card';
+      el.style.cssText='border:1px solid #eee;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 6px 20px rgba(0,0,0,.06)';
+      el.innerHTML = `
+        <div style="aspect-ratio:4/3;background:#f0f0f0">
+          <img src="${card.hero||'assets_img/placeholder.jpg'}" alt="${card.title}" style="width:100%;height:100%;object-fit:cover">
+        </div>
+        <div style="padding:12px">
+          <h3 style="margin:0 0 6px;font-size:18px">${card.title}</h3>
+          <p style="margin:0 0 6px;color:#666">
+            <strong>${card.mood}</strong> · ${card.weather} ·
+            <span style="background:#f5f5f5;border-radius:8px;padding:2px 6px">${card.palette_text||''}</span>
+          </p>
+          <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+            <div>
+              <div style="font-weight:600;margin-bottom:4px">아이템</div>
+              <ul style="margin:0;padding-left:18px">${(card.items||[]).map(i=>`<li>${i}</li>`).join('')}</ul>
+            </div>
+            <div>
+              <div style="font-weight:600;margin-bottom:4px">악세사리</div>
+              <ul style="margin:0;padding-left:18px">${(card.accessories||[]).map(a=>`<li>${a}</li>`).join('')}</ul>
+            </div>
+          </div>
+          <p style="margin:8px 0 0;color:#444">${card.description||''}</p>
+        </div>`;
+      grid.appendChild(el);
+    });
+  }
+
+  // (필요하면 나중에) 창 크기 변경 시 레이아웃만 다시 조정
+  window.addEventListener('resize',()=>{
+    // 마지막 추천 카드 리스트를 별도로 저장해두고 싶다면 여기서 사용
+  });
+</script>
+</body>
+</html>
