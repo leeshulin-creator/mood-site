@@ -57,16 +57,24 @@
 
       <div class="row" style="margin-top:8px">
         <button id="btnCam" class="primary" aria-pressed="false" aria-controls="video" title="Use camera" disabled>Start Camera</button>
+        <button id="btnCapture" title="Capture after 5 seconds" disabled>Capture in 5s</button>
         <label for="file" class="sr-only">Upload image</label>
         <input id="file" type="file" accept="image/*" title="Upload image file" />
         <button id="btnReset" title="Reset preview">Reset</button>
       </div>
+      
 
       <div style="margin-top:12px" class="row">
         <video id="video" class="preview hidden" playsinline muted aria-label="Camera preview"></video>
         <img id="img" class="preview hidden" alt="Uploaded image preview" />
         <canvas id="canvas" class="preview hidden" aria-hidden="true"></canvas>
       </div>
+
+      <div id="countdown" class="hidden" 
+           style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+                 font-size:72px; font-weight:700; color:#fff; text-shadow:0 0 10px #000;">
+      </div>
+
 
       <div id="status" class="muted" style="margin-top:8px">Idle…</div>
       <div id="msg" class="hidden" role="status" aria-live="polite" style="margin-top:8px"></div>
@@ -160,6 +168,9 @@
   const $finalSection = el('final-section');
   const $predSection = el('pred-section');
   const $btnRestart = el('btnRestart');
+  const $btnCapture = el('btnCapture');
+  const $countdown = el('countdown');
+
 
   // === State (steps / selections) ===
   const MOOD_TO_STYLE = { happy:"Active", neutral:"Minimal", sad:"Cozy", angry:"Street" };
@@ -263,12 +274,8 @@
 
       $img.classList.add('hidden');
       $video.classList.remove('hidden');
-
-      if ($video.readyState >= 2) {
-        startPredictLoop();
-      } else {
-        $video.addEventListener('loadeddata', startPredictLoop, { once:true });
-      }
+          // We only show the preview; prediction runs when user presses "Capture".
+      $btnCapture.disabled = false;
 
       $status.textContent = 'Camera input active…';
       $btnCam.textContent = 'Stop Camera';
@@ -280,14 +287,55 @@
   }
 
   function stopCamera(){
-    if(inferTimer){clearInterval(inferTimer); inferTimer=null}
-    if(webcamStream){
-      webcamStream.getTracks().forEach(t=>t.stop());
-      webcamStream = null;
-    }
-    $btnCam.textContent = 'Start Camera';
-    $btnCam.setAttribute('aria-pressed','false');
+  if(inferTimer){clearInterval(inferTimer); inferTimer=null}
+  if(webcamStream){
+    webcamStream.getTracks().forEach(t=>t.stop());
+    webcamStream = null;
   }
+  isCountingDown = false;
+  $countdown.classList.add('hidden');
+  $btnCapture.disabled = true;
+  $btnCam.textContent = 'Start Camera';
+  $btnCam.setAttribute('aria-pressed','false');
+}
+
+
+
+  function startCountdownAndCapture(){
+  if(!webcamStream){
+    announce('Please turn on the camera first.','muted');
+    return;
+  }
+  if(isCountingDown) return; // 이미 카운트 중이면 또 시작하지 않음
+
+  isCountingDown = true;
+  let count = 5;
+
+  $countdown.textContent = count;
+  $countdown.classList.remove('hidden');
+  $status.textContent = 'Taking a photo in 5 seconds…';
+
+  const timer = setInterval(async () => {
+    count--;
+    if(count > 0){
+      $countdown.textContent = count;
+    }else{
+      clearInterval(timer);
+      $countdown.classList.add('hidden');
+      isCountingDown = false;
+      $status.textContent = 'Capturing frame…';
+
+      try{
+        await predictOnce($video); // 여기서 한 번만 예측
+        $status.textContent = 'Prediction complete.';
+      }catch(e){
+        console.error(e);
+        setError('Error while predicting from camera: ' + e.message);
+      }
+    }
+  }, 1000);
+}
+
 
   // === 5-b) rAF inference loop ===
   function startPredictLoop(){
@@ -306,6 +354,8 @@
   $btnCam.addEventListener('click',()=>{
     if(webcamStream) stopCamera(); else startCamera();
   });
+
+  $btnCapture.addEventListener('click', startCountdownAndCapture);
 
   // Manual emotion selection buttons
   ['pickHappy','pickNeutral','pickSad','pickAngry'].forEach(id=>{
