@@ -42,7 +42,7 @@
 
       <div class="row" style="margin-top:8px">
         <button id="btnCam" class="primary" aria-pressed="false" aria-controls="video" title="Use camera" disabled>Start Camera</button>
-        <button id="btnCapture" title="Capture after 5 seconds" disabled>Capture in 5s</button>
+        <button id="btnCapture" title="Capture after 5 seconds" disabled>📷 Capture in 5s</button>
         <label for="file" class="sr-only">Upload image</label>
         <input id="file" type="file" accept="image/*" title="Upload image file" />
         <button id="btnReset" title="Reset preview">Reset</button>
@@ -76,6 +76,7 @@
       </div>
 
       <div id="predictions" class="log" style="min-height:140px" aria-live="polite" aria-atomic="true">Waiting for results…</div>
+      <div id="bars" class="barlist" aria-hidden="false"></div>
       <div id="guidance" class="muted" style="margin-top:10px"></div>
       <div class="row" style="margin-top:10px">
         <button id="btnNextWeather" class="primary" disabled>Next: Choose Weather</button>
@@ -139,6 +140,7 @@
   const $img = el('img');
   const $canvas = el('canvas');
   const $pred = el('predictions');
+  const $bars = el('bars');  
   const $guide = el('guidance');
   const $err = el('errorBox');
   const $ok = el('okBox');
@@ -408,6 +410,8 @@
       return `${p.className.padEnd(12,' ')}  ${pct}%`;
     });
     $pred.textContent = lines.join('\n');
+    // New: draw bar chart
+    renderBars(sorted);
 
     const best = sorted[0];
     if(best && best.probability < LOW_CONF){
@@ -581,6 +585,26 @@
       accessories:["Water-repellent bucket hat","High-grip sneakers"],
       description:"Techwear-inspired pieces that balance strong style and practicality." }
   ];
+    // Render bar chart for predictions
+function renderBars(list){
+  if(!$bars || !Array.isArray(list)) return;
+  $bars.innerHTML = '';
+
+  list.forEach(p=>{
+    const pct = Math.round(p.probability * 100);
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+      <div class="bar-label">${p.className}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct}%;"></div>
+      </div>
+      <div class="bar-pct">${pct}%</div>
+    `;
+    $bars.appendChild(row);
+  });
+}
+
 
   // ====== 12) Card rendering ======
   const grid = document.getElementById('card-grid');
