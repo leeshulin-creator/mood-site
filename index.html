@@ -4,33 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mood Classifier — Web Starter (TF.js + Teachable Machine)</title>
+
+  <!-- Google Font: Fredoka -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mood Classifier — Web Starter (TF.js + Teachable Machine)</title>
   <!-- Accessibility: readable default fonts and high-contrast base -->
-  <style>
-    :root{--gap:12px;--radius:16px;--shadow:0 6px 20px rgba(0,0,0,.08)}
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Apple SD Gothic Neo,Pretendard,sans-serif;margin:0;background:#f7f7fb;color:#111}
-    header{padding:20px 16px;text-align:center}
-    h1{font-size:22px;margin:0 0 4px}
-    main{max-width:920px;margin:0 auto;padding:0 16px 48px}
-    .grid{display:grid;grid-template-columns:1fr;gap:var(--gap)}
-    @media(min-width:960px){.grid{grid-template-columns:360px 1fr}}
-    .card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
-    .row{display:flex;gap:var(--gap);align-items:center;flex-wrap:wrap}
-    button,input[type=file]{padding:10px 14px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer}
-    button:focus, input:focus, select:focus{outline:3px solid #70a6ff44}
-    .primary{background:#111;color:#fff;border-color:#111}
-    .muted{color:#666}
-    .hidden{display:none}
-    .preview{width:100%;aspect-ratio:4/3;border-radius:12px;object-fit:cover;background:#eee}
-    .log{font-family:ui-monospace,Consolas,monospace;background:#0b1020;color:#e5ecff;border-radius:12px;padding:12px;overflow:auto}
-    .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef;}
-    progress{width:100%;height:16px}
-    .error{background:#fff0f0;border:1px solid #ffd7d7;color:#820000;padding:10px 12px;border-radius:12px}
-    .good{background:#f0fff4;border:1px solid #d4f5dc;color:#004a1f;padding:10px 12px;border-radius:12px}
-    .kbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    kbd{background:#f0f0f0;border:1px solid #ddd;border-bottom-width:2px;border-radius:6px;padding:2px 6px;font-family:ui-monospace,Consolas,monospace}
-    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-  </style>
+  <link rel="stylesheet" href="style.css">
   <!-- Teachable Machine Image library & TensorFlow.js -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
