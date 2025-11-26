@@ -47,7 +47,7 @@
     <p class="muted">Input → inference → feedback → action · Shows top-K labels and probabilities · Gives guidance when confidence is low.</p>
   </header>
 
-  <main class="grid" id="app">
+  <main class="grid hiddenPage" id="mainPage">
     <!-- Controls & Preview -->
     <section class="card" aria-labelledby="controls-title">
       <h2 id="controls-title">1) Input & Controls</h2>
@@ -650,6 +650,21 @@ function renderBars(list){
   document.getElementById('pred-section').scrollIntoView({ behavior: 'smooth' });
 });
 
+// 🌸 Hero → Prediction 화면 전환
+document.getElementById("heroStart").addEventListener("click", () => {
+  const hero = document.getElementById("hero");
+  const mainPage = document.getElementById("mainPage");
+
+  // Hero 페이드아웃
+  hero.classList.add("hiddenPage");
+
+  // Prediction 화면 페이드인
+  setTimeout(() => {
+    mainPage.classList.add("showPage");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, 200); // 약간의 딜레이로 전환이 자연스러움
+});
+
   // (Optional) handle layout on resize later if needed
   window.addEventListener('resize',()=>{
     // If you cache the last recommendation list, you can re-render here.
@@ -657,6 +672,8 @@ function renderBars(list){
 </script>
 </body>
 </html>
+
+
 
 
 
