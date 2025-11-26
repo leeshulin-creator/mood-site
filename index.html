@@ -474,13 +474,6 @@
     $finalSection.classList.remove('hidden');
   }
 
-  // === 8) Keyboard shortcuts ===
-  document.addEventListener('keydown',(e)=>{
-    if(e.key==='c' || e.key==='C'){ e.preventDefault(); $btnCam.click(); }
-    if(e.key==='u' || e.key==='U'){ e.preventDefault(); $file.click(); }
-    if(e.key==='r' || e.key==='R'){ e.preventDefault(); $btnReset.click(); }
-  });
-
   // === 9) Network status ===
   function updateOnline(){
     if(navigator.onLine){ setOk('Online — model can run.'); }
