@@ -34,7 +34,7 @@
 
       <div class="row" style="margin-top:8px">
         <button id="btnCam" class="primary" aria-pressed="false" aria-controls="video" title="Use camera" disabled>Start Camera</button>
-        <button id="btnCapture" title="Capture after 5 seconds" disabled>📷 Capture in 5s</button>
+        <button id="btnCapture" title="Capture after 3 seconds" disabled>📷 Capture in 3s</button>
         <label for="file" class="sr-only">Upload image</label>
         <input id="file" type="file" accept="image/*" title="Upload image file" />
         <button id="btnReset" title="Reset preview">Reset</button>
@@ -292,7 +292,7 @@
 
   $countdown.textContent = count;
   $countdown.classList.remove('hidden');
-  $status.textContent = 'Taking a photo in 5 seconds…';
+  $status.textContent = 'Taking a photo in 3 seconds…';
 
   const timer = setInterval(async () => {
     count--;
