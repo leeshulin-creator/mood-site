@@ -137,6 +137,13 @@
   </main>
 
 <script>
+  const EMOJI = {
+  happy: "🙂 Happy",
+  sad: "😢 Sad",
+  angry: "😠 Angry",
+  neutral: "😐 Neutral"
+};
+
   // === 0) Config ===
   // Teachable Machine hosted model URL (must include trailing '/')
   const MODEL_URL = "https://teachablemachine.withgoogle.com/models/9wE0hh98E/";
@@ -591,16 +598,32 @@
       description:"Techwear-inspired pieces that balance strong style and practicality." }
   ];
     // Render bar chart for predictions
-function renderBars(list){
+    function renderBars(list){
   if(!$bars || !Array.isArray(list)) return;
   $bars.innerHTML = '';
 
+  // Top-1 강조용
+  const top1 = list[0];
+
   list.forEach(p=>{
     const pct = Math.round(p.probability * 100);
+    const rawLabel = p.className.toLowerCase();
+
+    // 감정 이름 정규화
+    let key = "neutral";
+    if(rawLabel.includes("happy")) key = "happy";
+    else if(rawLabel.includes("sad")) key = "sad";
+    else if(rawLabel.includes("angry")) key = "angry";
+
+    // 🔥 상위 1개 강조
+    const displayLabel = (p === top1)
+      ? `🔥 ${EMOJI[key]}`
+      : EMOJI[key];
+
     const row = document.createElement('div');
     row.className = 'bar-row';
     row.innerHTML = `
-      <div class="bar-label">${p.className}</div>
+      <div class="bar-label">${displayLabel}</div>
       <div class="bar-track">
         <div class="bar-fill" style="width:${pct}%;"></div>
       </div>
@@ -609,7 +632,6 @@ function renderBars(list){
     $bars.appendChild(row);
   });
 }
-
 
   // ====== 12) Card rendering ======
   const grid = document.getElementById('card-grid');
