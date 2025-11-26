@@ -315,3 +315,17 @@
   box-shadow:0 14px 32px rgba(255,122,162,0.45);
 }
  
+/* 🌸 Page Transition (Hero → Prediction) */
+.hiddenPage {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(40px);
+  transition: all 0.7s ease;
+}
+
+.showPage {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
