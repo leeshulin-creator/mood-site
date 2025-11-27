@@ -656,40 +656,52 @@ $file.addEventListener('change', (ev)=>{
   }
 
   // Render cards
-  const grid = document.getElementById('card-grid');
   function renderCards(list){
-    if(!grid || !Array.isArray(list)) return;
-    grid.style.gridTemplateColumns = window.innerWidth>=960 ? '1fr 1fr' : '1fr';
-    grid.innerHTML='';
-    list.forEach(card=>{
-      const el=document.createElement('article');
-      el.className='rec-card';
-      el.style.cssText='border:1px solid #eee;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 6px 20px rgba(0,0,0,.06)';
-      el.innerHTML = `
-        <div style="aspect-ratio:4/3;background:#f0f0f0">
-          <img src="${card.hero||'assets_img/placeholder.jpg'}" alt="${card.title}" style="width:100%;height:100%;object-fit:cover">
+  if(!grid || !Array.isArray(list)) return;
+
+  grid.style.gridTemplateColumns = window.innerWidth>=960
+    ? '1fr 1fr'
+    : '1fr';
+  
+  grid.innerHTML='';
+
+  list.forEach(card=>{
+    const el=document.createElement('article');
+    el.className='rec-card';
+
+    el.innerHTML = `
+      <div style="aspect-ratio:4/3; background:#f8f8f8;">
+        <img src="${card.hero}" alt="${card.title}">
+      </div>
+
+      <div style="padding:18px;">
+        <h3>${card.title}</h3>
+
+        <div class="rec-meta">
+          <strong>${card.mood}</strong> · ${card.weather}
+          <span class="rec-tag">${card.palette_text}</span>
         </div>
-        <div style="padding:12px">
-          <h3 style="margin:0 0 6px;font-size:18px">${card.title}</h3>
-          <p style="margin:0 0 6px;color:#666">
-            <strong>${card.mood}</strong> · ${card.weather} ·
-            <span style="background:#f5f5f5;border-radius:8px;padding:2px 6px">${(card.palette_text||'')}</span>
-          </p>
-          <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
-            <div>
-              <div style="font-weight:600;margin-bottom:4px">Items</div>
-              <ul style="margin:0;padding-left:18px">${(card.items||[]).map(i=>`<li>${i}</li>`).join('')}</ul>
-            </div>
-            <div>
-              <div style="font-weight:600;margin-bottom:4px">Accessories</div>
-              <ul style="margin:0;padding-left:18px">${(card.accessories||[]).map(a=>`<li>${a}</li>`).join('')}</ul>
-            </div>
+
+        <div class="rec-list">
+          <div>
+            <div class="rec-list-title">Items</div>
+            <ul>${card.items.map(i=>`<li>${i}</li>`).join('')}</ul>
           </div>
-          <p style="margin:8px 0 0;color:#444">${card.description||''}</p>
-        </div>`;
-      grid.appendChild(el);
-    });
-  }
+
+          <div style="margin-top:10px">
+            <div class="rec-list-title">Accessories</div>
+            <ul>${card.accessories.map(a=>`<li>${a}</li>`).join('')}</ul>
+          </div>
+        </div>
+
+        <p class="rec-desc">${card.description}</p>
+      </div>
+    `;
+
+    grid.appendChild(el);
+  });
+}
+
 
   // 🌸 Hero → Prediction 화면 전환 (중복 없이 딱 1개)
 document.getElementById("heroStart").addEventListener("click", () => {
