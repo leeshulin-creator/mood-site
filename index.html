@@ -629,6 +629,11 @@
         <div class="bar-pct">${pct}%</div>
       `;
       $bars.appendChild(row);
+
+      setTimeout(() => {
+        row.querySelector(".bar-fill").classList.add("show");
+      }, 10);
+
     });
   }
 
