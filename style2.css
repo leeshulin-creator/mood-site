@@ -339,18 +339,24 @@
   position: relative;
 }
 
-/* 실제 채워지는 막대 */
+/* === Soft Pink Bar Animation === */
 .bar-fill {
   height: 100%;
-  width: 0%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--primary), var(--primary-dark));
-
-  /* 부드러운 애니메이션 */
-  transition:
-    width 0.55s cubic-bezier(0.25, 0.8, 0.25, 1),
-    background 0.3s ease;
+  transition: width 0.65s cubic-bezier(0.25, 0.1, 0.25, 1),
+              transform 0.35s ease-out,
+              opacity 0.35s ease-out;
+  transform-origin: left center;
+  opacity: 0;
+  transform: scaleX(0.97);
 }
+
+.bar-fill.show {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
 
 /* % 텍스트 */
 .bar-pct {
