@@ -669,19 +669,26 @@
   }
 
   // 🌸 Hero → Prediction 화면 전환 (중복 없이 딱 1개)
-  document.getElementById("heroStart").addEventListener("click", () => {
-    const hero = document.getElementById("hero");
-    const mainPage = document.getElementById("mainPage");
-    const pred = document.getElementById("pred-section");
+document.getElementById("heroStart").addEventListener("click", () => {
+  const hero = document.getElementById("hero");
+  const mainPage = document.getElementById("mainPage");
+  const pred = document.getElementById("pred-section");
 
-    hero.classList.add("hiddenPage");
+  // Hero는 숨기고
+  hero.classList.add("hiddenPage");
 
-    setTimeout(() => {
-      mainPage.classList.add("showPage");
-      pred.classList.add("show");
-      pred.scrollIntoView({ behavior: "smooth" });
-    }, 300);
-  });
+  setTimeout(() => {
+    // ⭐ mainPage에서는 hiddenPage 떼 주고
+    mainPage.classList.remove("hiddenPage");  // 👈 이 줄이 핵심
+    mainPage.classList.add("showPage");
+
+    // Prediction 섹션 페이드인
+    pred.classList.add("show");
+
+    // 화면 이동
+    pred.scrollIntoView({ behavior: "smooth" });
+  }, 300);
+});
 
   // 레이아웃 변경 시 카드 레이아웃 재조정 (필요하면 확장)
   window.addEventListener('resize',()=>{
