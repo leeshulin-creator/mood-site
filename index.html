@@ -1,25 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mood Classifier — Style Recommender</title>
 
-  <!-- Google Font: Fredoka -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="style2.css">
-
-  <!-- Teachable Machine Image library & TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-</head>
-<body>
-
-  <!-- 🌸 Hero Section -->
   <section id="hero">
     <div class="hero-inner">
       <h1 class="hero-title">
@@ -27,25 +9,43 @@
         Match your style.<br>
         <span class="hero-accent">Start your day with confidence.</span>
       </h1>
-
-      <img src="assets_img/hero.jpg" alt="Fashion mood cover" class="hero-img">
-
+  
+      <img src="assets_img/hero.jpg" alt="Fashion mood cover"
+           class="hero-img">
+  
       <button id="heroStart" class="hero-btn">
         ✨ Start your style journey
       </button>
     </div>
   </section>
+  
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mood Classifier — Web Starter (TF.js + Teachable Machine)</title>
 
-  <!-- 🌙 Main Page (처음엔 숨김) -->
+  <!-- Google Font: Fredoka -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mood Classifier — Web Starter (TF.js + Teachable Machine)</title>
+  <!-- Accessibility: readable default fonts and high-contrast base -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Teachable Machine Image library & TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+</head>
+<body>
+  <header>
+    <h1 aria-label="Mood classifier web starter">😎 Mood Classifier — Web Starter</h1>
+    <p class="muted">Input → inference → feedback → action · Shows top-K labels and probabilities · Gives guidance when confidence is low.</p>
+  </header>
+
   <main class="grid hiddenPage" id="mainPage">
-
-    <!-- 상단 설명 -->
-    <header>
-      <h1 aria-label="Mood classifier web starter">😎 Mood Classifier — Web Starter</h1>
-      <p class="muted">Input → inference → feedback → action · Shows top-K labels and probabilities · Gives guidance when confidence is low.</p>
-    </header>
-
-    <!-- 1) Controls & Preview -->
+    <!-- Controls & Preview -->
     <section class="card" aria-labelledby="controls-title">
       <h2 id="controls-title">1) Input & Controls</h2>
 
@@ -56,14 +56,14 @@
         <input id="file" type="file" accept="image/*" title="Upload image file" />
         <button id="btnReset" title="Reset preview">Reset</button>
       </div>
-
+      
       <div style="margin-top:12px" class="row">
         <video id="video" class="preview hidden" playsinline muted aria-label="Camera preview"></video>
         <img id="img" class="preview hidden" alt="Uploaded image preview" />
         <canvas id="canvas" class="preview hidden" aria-hidden="true"></canvas>
       </div>
 
-      <div id="countdown" class="hidden"
+      <div id="countdown" class="hidden" 
            style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
                  font-size:72px; font-weight:700; color:#fff; text-shadow:0 0 10px #000;">
       </div>
@@ -72,8 +72,8 @@
       <div id="msg" class="hidden" role="status" aria-live="polite" style="margin-top:8px"></div>
     </section>
 
-    <!-- 2) Prediction Results -->
-    <section class="card fade-in" aria-labelledby="pred-title" id="pred-section">
+    <!-- Predictions & Guidance -->
+    <section class="card" aria-labelledby="pred-title" id="pred-section">
       <h2 id="pred-title">2) Prediction Results</h2>
       <p class="muted">Shows the top-K labels and probabilities. Provides guidance when confidence is low.</p>
 
@@ -82,14 +82,9 @@
         <progress id="progress" max="100" value="0"></progress>
       </div>
 
-      <div id="predictions" class="log" style="min-height:140px" aria-live="polite" aria-atomic="true">
-        Waiting for results…
-      </div>
-
+      <div id="predictions" class="log" style="min-height:140px" aria-live="polite" aria-atomic="true">Waiting for results…</div>
       <div id="bars" class="barlist" aria-hidden="false"></div>
-
       <div id="guidance" class="muted" style="margin-top:10px"></div>
-
       <div class="row" style="margin-top:10px">
         <button id="btnNextWeather" class="primary" disabled>Next: Choose Weather</button>
       </div>
@@ -103,7 +98,7 @@
       </div>
     </section>
 
-    <!-- 3) Status & Errors -->
+    <!-- Notes & Errors -->
     <section class="card" aria-labelledby="notes-title">
       <h2 id="notes-title">3) Status & Errors</h2>
       <ul id="notes" class="muted" style="line-height:1.6">
@@ -115,10 +110,14 @@
       <div id="okBox" class="good hidden">System is running normally.</div>
     </section>
 
-    <!-- 4) Weather selection -->
+    <!-- Step 3: Weather selection (initially hidden) -->
     <section class="card hidden" id="weather-section" aria-labelledby="weather-title">
       <h2 id="weather-title">3) Choose Weather</h2>
-      <p class="muted">Pick today’s weather.</p>
+      <p class="muted">Pick today’s weather. (Manual selection in this version.)</p>
+
+      <!-- 자동 감지 결과를 크게 보여줄 영역 -->
+      <div id="weatherResult" class="muted" style="margin-top:8px; font-weight:600;"></div>
+
       <div class="row" style="margin-top:8px">
         <button data-weather="Sunny">☀️ Sunny</button>
         <button data-weather="Cloudy">⛅ Cloudy</button>
@@ -126,7 +125,7 @@
       </div>
     </section>
 
-    <!-- 5) Final Recommendation -->
+    <!-- Step 4: Final matched card (single) -->
     <section class="card hidden" aria-labelledby="final-title" id="final-section">
       <h2 id="final-title">Final Recommendation</h2>
       <div id="card-grid" style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px"></div>
@@ -134,17 +133,9 @@
         <button id="btnRestart">Start Over</button>
       </div>
     </section>
-
   </main>
 
 <script>
-  const EMOJI = {
-    happy: "🙂 Happy",
-    sad: "😢 Sad",
-    angry: "😠 Angry",
-    neutral: "😐 Neutral"
-  };
-
   // === 0) Config ===
   const MODEL_URL = "https://teachablemachine.withgoogle.com/models/9wE0hh98E/";
   const TOP_K = 3;
@@ -159,7 +150,7 @@
   const $img = el('img');
   const $canvas = el('canvas');
   const $pred = el('predictions');
-  const $bars = el('bars');
+  const $bars = el('bars');  
   const $guide = el('guidance');
   const $err = el('errorBox');
   const $ok = el('okBox');
@@ -176,35 +167,33 @@
   const $btnRestart = el('btnRestart');
   const $btnCapture = el('btnCapture');
   const $countdown = el('countdown');
+  const $weatherResult = el('weatherResult');
 
-  // === State ===
+  // === State (steps / selections) ===
   const MOOD_TO_STYLE = { happy:"Active", neutral:"Minimal", sad:"Cozy", angry:"Street" };
   let step = 1;
   let selectedEmotion = null;
   let selectedStyle = null;
   let selectedWeather = null;
 
+  // === 2) Global model/camera ===
   let model, maxPredictions;
   let webcamStream = null;
   let inferTimer = null;
   let lastInfer = 0;
   let isCountingDown = false;
 
-  // Accessibility helpers
+  // Accessibility: announce helper
   function announce(html, cls=""){
     $msg.className = cls || "";
     $msg.innerHTML = html;
     $msg.classList.remove('hidden');
   }
   function setError(e){
-    $err.textContent = e;
-    $err.classList.remove('hidden');
-    $ok.classList.add('hidden');
+    $err.textContent = e; $err.classList.remove('hidden'); $ok.classList.add('hidden');
   }
   function setOk(t="System is running normally."){
-    $ok.textContent = t;
-    $ok.classList.remove('hidden');
-    $err.classList.add('hidden');
+    $ok.textContent = t; $ok.classList.remove('hidden'); $err.classList.add('hidden');
   }
 
   // === 3) Load model ===
@@ -214,7 +203,7 @@
         throw new Error('Teachable Machine library (tmImage) is not loaded. Please check your network or CDN blocking.');
       }
       if (!window.isSecureContext && !location.hostname.match(/^localhost|127\.0\.0\.1$/)) {
-        console.warn('Insecure context: camera access requires HTTPS or localhost.');
+        console.warn('Insecure context: camera access requires HTTPS or localhost. (Model loading is still possible.)');
       }
       if(!MODEL_URL || !MODEL_URL.startsWith('http')){
         throw new Error('Please set a valid MODEL_URL.');
@@ -223,11 +212,7 @@
       $status.textContent = 'Loading model…';
       $progressBox.classList.remove('hidden');
 
-      let p=0;
-      const t = setInterval(()=>{
-        p = Math.min(p+8, 96);
-        $progress.value = p;
-      }, 120);
+      let p=0; const t = setInterval(()=>{p=Math.min(p+8, 96); $progress.value=p;}, 120);
 
       const modelURL = MODEL_URL + 'model.json';
       const metadataURL = MODEL_URL + 'metadata.json';
@@ -239,9 +224,7 @@
         if(!headModel.ok) throw new Error('model.json responded with '+headModel.status+'. Please check the URL or public access settings.');
         if(!headMeta.ok) throw new Error('metadata.json responded with '+headMeta.status+'. Please check the URL or public access settings.');
       }catch(pre){
-        clearInterval(t);
-        $progress.value=0;
-        $progressBox.classList.add('hidden');
+        clearInterval(t); $progress.value=0; $progressBox.classList.add('hidden');
         throw pre;
       }
 
@@ -252,11 +235,10 @@
 
       maxPredictions = model.getTotalClasses();
       setOk('Model loaded ('+maxPredictions+' classes).');
-      $btnCam.disabled = false;
+      $btnCam.disabled = false; 
       $status.textContent = 'Ready. Choose an input to start.';
     }catch(e){
-      console.error(e);
-      setError('Failed to load model: '+ e.message);
+      console.error(e); setError('Failed to load model: '+ e.message);
       $status.textContent = 'Stopped due to an error.';
     }
   }
@@ -351,6 +333,7 @@
     }, 1000);
   }
 
+  // === 5-b) rAF inference loop (unused for now) ===
   function startPredictLoop(){
     if(!model || !$video || !webcamStream) return;
     const loop = (ts) => {
@@ -370,7 +353,7 @@
 
   $btnCapture.addEventListener('click', startCountdownAndCapture);
 
-  // Manual emotion selection
+  // Manual emotion selection buttons
   ['pickHappy','pickNeutral','pickSad','pickAngry'].forEach(id=>{
     const elBtn = document.getElementById(id);
     if(!elBtn) return;
@@ -385,10 +368,11 @@
     gotoWeatherStep();
   });
 
-  // Weather buttons
+  // Weather buttons (manual)
   $weatherSection.querySelectorAll('button[data-weather]').forEach(btn=>{
     btn.addEventListener('click',()=>{
       selectedWeather = btn.getAttribute('data-weather');
+      console.log('Manual weather selected:', selectedWeather);
       showFinalCard();
     });
   });
@@ -408,7 +392,7 @@
     setOk('Restarting from the beginning.');
   });
 
-  // Reset
+  // === 6) Reset ===
   $btnReset.addEventListener('click',()=>{
     stopCamera();
     $video.classList.add('hidden');
@@ -436,7 +420,6 @@
       return `${p.className.padEnd(12,' ')}  ${pct}%`;
     });
     $pred.textContent = lines.join('\n');
-
     renderBars(sorted);
 
     const best = sorted[0];
@@ -446,7 +429,8 @@
       $guide.textContent = '';
     }
 
-    if (best) {
+    // Map predicted label to one of our target emotions
+    if (최고) {
       const label = (best.className || '').toLowerCase();
       let emote = null;
       if(label.includes('happy')) emote = 'happy';
@@ -462,6 +446,7 @@
     setOk();
   }
 
+  // === 7-b) Emotion / step helpers ===
   function setEmotionAndEnableNext(emote){
     selectedEmotion = emote;
     selectedStyle = MOOD_TO_STYLE[emote] || null;
@@ -471,27 +456,100 @@
     }
   }
 
-  function gotoWeatherStep(){
-    if(!selectedStyle){
-      announce('Please select an emotion or finish face detection first.','muted');
-      return;
-    }
-    step = 2;
-    $predSection.classList.add('hidden');
-    $weatherSection.classList.remove('hidden');
-    $finalSection.classList.add('hidden');
+  // === Weather API (Open-Meteo 테스트용) ===
+  async function fetchWeatherByLatLon(lat, lon) {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return data.current.weather_code;
   }
 
-  function showFinalCard(){
-    if(!selectedStyle || !selectedWeather){
-      announce('Style or weather information is missing. Please select again.','muted');
+  function mapCodeToWeatherText(code) {
+    if ([0, 1].includes(code)) return "Sunny";
+    if ([2, 3, 45, 48].includes(code)) return "Cloudy";
+    return "Rainy";
+  }
+
+  // === Auto weather detection ===
+  async function autoSetWeather() {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        try {
+          const code = await fetchWeatherByLatLon(lat, lon);
+          const w = mapCodeToWeatherText(code);
+
+          selectedWeather = w;
+          console.log("Auto selectedWeather:", selectedWeather);
+
+          if($weatherResult){
+            $weatherResult.innerHTML = `Detected weather: <strong>${w}</strong> (based on your current location)`;
+          }
+          announce(
+            `Detected weather: <strong>${w}</strong>. You can use this or pick another one.`,
+            "muted"
+          );
+        } catch (e) {
+          console.error(e);
+          if($weatherResult){
+            $weatherResult.textContent = "Weather detection failed. Please pick manually.";
+          }
+          announce("Weather auto-detection failed. Please choose manually.", "muted");
+        }
+      },
+      (err) => {
+        console.error(err);
+        if($weatherResult){
+          $weatherResult.textContent = "Weather detection failed. Please pick manually.";
+        }
+        announce("Weather auto-detection failed. Please choose manually.", "muted");
+      }
+    );
+  }
+
+  // === Step: weather page ===
+  function gotoWeatherStep() {
+    if (!selectedStyle) {
+      announce("Please select an emotion or finish face detection first.", "muted");
       return;
     }
-    const target = RECOMMENDATIONS.find(card=>
+
+    step = 2;
+    $predSection.classList.add("hidden");
+    $weatherSection.classList.remove("hidden");
+    $finalSection.classList.add("hidden");
+
+    if($weatherResult){
+      $weatherResult.textContent = "Detecting your current weather...";
+    }
+    announce("Opening weather selection... Trying to detect your current weather.", "muted");
+    autoSetWeather();
+  }
+
+  // === Final card ===
+  function showFinalCard() {
+    console.log('showFinalCard() with:', selectedStyle, selectedWeather);
+
+    if (!selectedStyle || !selectedWeather) {
+      announce('Style or weather information is missing. Please select again.', 'muted');
+      return;
+    }
+
+    const target = RECOMMENDATIONS.find(card =>
       card.mood === selectedStyle && card.weather === selectedWeather
     );
-    const list = target ? [target] : [];
-    renderCards(list);
+
+    if (!target) {
+      announce(
+        `No card matched for style = ${selectedStyle}, weather = ${selectedWeather}.`,
+        'muted'
+      );
+      return;
+    }
+
+    renderCards([target]);
     step = 3;
     $predSection.classList.add('hidden');
     $weatherSection.classList.add('hidden');
@@ -599,30 +657,17 @@
       description:"Techwear-inspired pieces that balance strong style and practicality." }
   ];
 
-  // Render bar chart
+  // Render bar chart for predictions
   function renderBars(list){
     if(!$bars || !Array.isArray(list)) return;
     $bars.innerHTML = '';
 
-    const top1 = list[0];
-
     list.forEach(p=>{
       const pct = Math.round(p.probability * 100);
-      const rawLabel = p.className.toLowerCase();
-
-      let key = "neutral";
-      if(rawLabel.includes("happy")) key = "happy";
-      else if(rawLabel.includes("sad")) key = "sad";
-      else if(rawLabel.includes("angry")) key = "angry";
-
-      const displayLabel = (p === top1)
-        ? `🔥 ${EMOJI[key]}`
-        : EMOJI[key];
-
       const row = document.createElement('div');
       row.className = 'bar-row';
       row.innerHTML = `
-        <div class="bar-label">${displayLabel}</div>
+        <div class="bar-label">${p.className}</div>
         <div class="bar-track">
           <div class="bar-fill" style="width:${pct}%;"></div>
         </div>
@@ -632,7 +677,7 @@
     });
   }
 
-  // Render cards
+  // ====== 12) Card rendering ======
   const grid = document.getElementById('card-grid');
   function renderCards(list){
     if(!grid || !Array.isArray(list)) return;
@@ -668,26 +713,25 @@
     });
   }
 
-  // 🌸 Hero → Prediction 화면 전환 (중복 없이 딱 1개)
+  // Hero scroll + 전환
+  document.getElementById('heroStart').addEventListener('click', () => {
+    document.getElementById('pred-section').scrollIntoView({ behavior: 'smooth' });
+  });
+
   document.getElementById("heroStart").addEventListener("click", () => {
     const hero = document.getElementById("hero");
     const mainPage = document.getElementById("mainPage");
-    const pred = document.getElementById("pred-section");
 
     hero.classList.add("hiddenPage");
-
     setTimeout(() => {
       mainPage.classList.add("showPage");
-      pred.classList.add("show");
-      pred.scrollIntoView({ behavior: "smooth" });
-    }, 300);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 200);
   });
 
-  // 레이아웃 변경 시 카드 레이아웃 재조정 (필요하면 확장)
   window.addEventListener('resize',()=>{
-    // 필요하면 여기서 다시 renderCards 호출할 수 있음
+    // layout tweak if needed
   });
 </script>
-
 </body>
 </html>
