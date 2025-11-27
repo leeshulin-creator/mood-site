@@ -261,40 +261,39 @@
     }
   }
 
-  // === 4) File upload ===
-$file.addEventListener('change', (ev) => {
-  try {
+  // === 4) File upload (fixed: waits for image load) ===
+$file.addEventListener('change', (ev)=>{
+  try{
     const f = ev.target.files && ev.target.files[0];
-    if (!f) {
-      announce('No file selected.', 'muted');
+    if(!f){
+      announce('No file selected.','muted');
       return;
     }
-    if (!f.type.startsWith('image/')) {
+    if(!f.type.startsWith('image/')){
       setError('This is not a valid image file.');
       return;
     }
 
-    stopCamera();            // 카메라 종료
+    stopCamera();
     $video.classList.add('hidden');
+    $img.classList.remove('hidden');
 
     const url = URL.createObjectURL(f);
-
-    // ⭐ 이미지가 완전히 로드된 뒤 예측 (핵심)
-    $img.onload = async () => {
+    
+    // ⭐ 이미지 로드가 끝난 후 정확하게 예측 실행
+    $img.onload = async ()=>{
       URL.revokeObjectURL(url);
-
-      $img.classList.remove('hidden');
-
-      try {
-        await predictOnce($img);   // 이제 정확히 작동됨
-      } catch (e) {
-        setError('Error while predicting from file: ' + e.message);
+      try{
+        await predictOnce($img);
+      }catch(e){
+        setError('Error predicting image: ' + e.message);
       }
     };
 
     $img.src = url;
-  } catch (e) {
-    setError('Error during image upload: ' + e.message);
+
+  }catch(e){
+    setError('Error while processing file: '+ e.message);
   }
 });
 
