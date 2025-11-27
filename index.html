@@ -262,22 +262,41 @@
   }
 
   // === 4) File upload ===
-  $file.addEventListener('change', async (ev)=>{
-    try{
-      const f = ev.target.files && ev.target.files[0];
-      if(!f){announce('No file selected.','muted');return}
-      if(!f.type.startsWith('image/')){setError('This is not a valid image file.');return}
+$file.addEventListener('change', (ev) => {
+  try {
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) {
+      announce('No file selected.', 'muted');
+      return;
+    }
+    if (!f.type.startsWith('image/')) {
+      setError('This is not a valid image file.');
+      return;
+    }
 
-      stopCamera();
-      $video.classList.add('hidden');
+    stopCamera();            // 카메라 종료
+    $video.classList.add('hidden');
+
+    const url = URL.createObjectURL(f);
+
+    // ⭐ 이미지가 완전히 로드된 뒤 예측 (핵심)
+    $img.onload = async () => {
+      URL.revokeObjectURL(url);
+
       $img.classList.remove('hidden');
-      const url = URL.createObjectURL(f);
-      $img.src = url;
-      $img.onload = ()=> URL.revokeObjectURL(url);
 
-      await predictOnce($img);
-    }catch(e){setError('Error while predicting from file: '+ e.message)}
-  });
+      try {
+        await predictOnce($img);   // 이제 정확히 작동됨
+      } catch (e) {
+        setError('Error while predicting from file: ' + e.message);
+      }
+    };
+
+    $img.src = url;
+  } catch (e) {
+    setError('Error during image upload: ' + e.message);
+  }
+});
 
   // === 5) Camera ===
   async function startCamera(){
