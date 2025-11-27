@@ -365,4 +365,9 @@
   text-align: right;
 }
 
+.bar-fill.show {
+  opacity: 1;
+}
+ 
+
 
