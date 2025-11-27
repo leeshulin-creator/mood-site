@@ -501,20 +501,31 @@ $file.addEventListener('change', (ev)=>{
   }
 
   function showFinalCard(){
-    if(!selectedStyle || !selectedWeather){
-      announce('Style or weather information is missing. Please select again.','muted');
-      return;
-    }
-    const target = RECOMMENDATIONS.find(card=>
-      card.mood === selectedStyle && card.weather === selectedWeather
-    );
-    const list = target ? [target] : [];
-    renderCards(list);
-    step = 3;
-    $predSection.classList.add('hidden');
-    $weatherSection.classList.add('hidden');
-    $finalSection.classList.remove('hidden');
+  // 1) 스타일 / 날씨가 비어 있으면 안내만 하고 종료
+  if (!selectedStyle || !selectedWeather) {
+    announce('Style or weather information is missing. Please select again.','muted');
+    return;
   }
+
+  // 2) 추천 카드 찾기
+  const target = RECOMMENDATIONS.find(card =>
+    card.mood === selectedStyle && card.weather === selectedWeather
+  );
+  const list = target ? [target] : [];
+
+  // 3) 카드 렌더링
+  renderCards(list);
+
+  // 4) 섹션 전환
+  step = 3;
+  $predSection.classList.add('hidden');    // Prediction 숨김
+  $weatherSection.classList.add('hidden'); // Weather 숨김
+  $finalSection.classList.remove('hidden'); // Final Recommendation 보여주기
+
+  // 🔥 5) 결과 카드 위치로 자동 스크롤
+  $finalSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 
   // === 9) Network status ===
   function updateOnline(){
