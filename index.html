@@ -118,15 +118,20 @@
     </section>
 
     <!-- 4) Weather selection -->
-    <section class="card hidden" id="weather-section" aria-labelledby="weather-title">
-      <h2 id="weather-title">3) Choose Weather</h2>
+    <section class="card hidden" id="weather-section">
+      <h2>3) Choose Weather</h2>
       <p class="muted">Pick today’s weather.</p>
+    
+      <!-- 자동 감지 표시 -->
+      <div id="weatherResult" class="muted" style="margin-top:8px;"></div>
+    
       <div class="row" style="margin-top:8px">
         <button data-weather="Sunny">☀️ Sunny</button>
         <button data-weather="Cloudy">⛅ Cloudy</button>
         <button data-weather="Rainy">🌧️ Rainy</button>
       </div>
     </section>
+    
 
     <!-- 5) Final Recommendation -->
     <section class="card hidden" aria-labelledby="final-title" id="final-section">
@@ -532,18 +537,22 @@ async function autoSetWeather() {
   );
 }
 
-  function gotoWeatherStep(){
-    if(!selectedStyle){
-      announce('Please select an emotion or finish face detection first.','muted');
-      return;
-    }
-    step = 2;
-    $predSection.classList.add('hidden');
-    $weatherSection.classList.remove('hidden');
-    $finalSection.classList.add('hidden');
-      // ⭐ 자동 날씨 감지 호출
-    autoSetWeather();
+function gotoWeatherStep(){
+  if(!selectedStyle){
+    announce('Please select an emotion or finish face detection first.','muted');
+    return;
   }
+  step = 2;
+
+  // 화면 전환
+  $predSection.classList.add('hidden');
+  $weatherSection.classList.remove('hidden');
+  $finalSection.classList.add('hidden');
+
+  // ⭐ 자동 날씨 감지 실행
+  autoSetWeather();
+}
+
 
   function showFinalCard(){
   // 1) 스타일 / 날씨가 비어 있으면 안내만 하고 종료
@@ -796,6 +805,37 @@ function renderCards(list){
   window.addEventListener('resize',()=>{
     // 필요하면 여기서 다시 renderCards 호출할 수 있음
   });
+  async function autoSetWeather() {
+  if (!navigator.geolocation) {
+    announce("Location not supported on this browser.", "muted");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        const code = await fetchWeatherByLatLon(lat, lon);
+        const w = mapCodeToWeatherText(code);
+
+        selectedWeather = w;
+
+        const el = document.getElementById("weatherResult");
+        if (el) {
+          el.innerHTML = `Detected weather: <strong>${w}</strong>`;
+        }
+      } catch(e) {
+        announce("Weather detection failed. Pick manually.", "muted");
+      }
+    },
+    () => {
+      announce("Permission denied. Pick manually.", "muted");
+    }
+  );
+}
+
 </script>
 
 </body>
