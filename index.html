@@ -440,6 +440,20 @@ $file.addEventListener('change', (ev)=>{
     announce('Reset complete.','muted');
   });
 
+  // === Weather API ===
+async function fetchWeatherByLatLon(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return data.current.weather_code;
+}
+
+function mapCodeToWeatherText(code) {
+  if ([0, 1].includes(code)) return "Sunny";
+  if ([2, 3, 45, 48].includes(code)) return "Cloudy";
+  return "Rainy";
+}
+
   // === 7) Inference ===
   async function predictOnce(sourceEl){
     if(!model){announce('Please load the model first.','muted');return}
@@ -491,6 +505,33 @@ $file.addEventListener('change', (ev)=>{
     }
   }
 
+  // === Auto weather detection ===
+async function autoSetWeather() {
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      try {
+        const code = await fetchWeatherByLatLon(lat, lon);
+        const w = mapCodeToWeatherText(code);
+
+        selectedWeather = w;
+
+        const wr = document.getElementById("weatherResult");
+        if (wr) wr.innerHTML = `Detected weather: <strong>${w}</strong>`;
+      } catch(e) {
+        const wr = document.getElementById("weatherResult");
+        if (wr) wr.textContent = "Weather detection failed. Please pick manually.";
+      }
+    },
+    () => {
+      const wr = document.getElementById("weatherResult");
+      if (wr) wr.textContent = "Weather detection failed. Please pick manually.";
+    }
+  );
+}
+
   function gotoWeatherStep(){
     if(!selectedStyle){
       announce('Please select an emotion or finish face detection first.','muted');
@@ -500,6 +541,8 @@ $file.addEventListener('change', (ev)=>{
     $predSection.classList.add('hidden');
     $weatherSection.classList.remove('hidden');
     $finalSection.classList.add('hidden');
+      // ⭐ 자동 날씨 감지 호출
+    autoSetWeather();
   }
 
   function showFinalCard(){
@@ -757,4 +800,3 @@ function renderCards(list){
 
 </body>
 </html>
-
