@@ -183,6 +183,7 @@
   const $btnRestart = el('btnRestart');
   const $btnCapture = el('btnCapture');
   const $countdown = el('countdown');
+  const $weatherResult = el('weatherResult');
 
   // === State ===
   const MOOD_TO_STYLE = { happy:"Active", neutral:"Minimal", sad:"Cozy", angry:"Street" };
@@ -510,6 +511,83 @@ function mapCodeToWeatherText(code) {
     }
   }
 
+  // ⭐ 1) 위도/경도로 날씨 코드 가져오기 (Open-Meteo)
+async function fetchWeatherByLatLon(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error('Weather API error: ' + res.status);
+  }
+  const data = await res.json();
+  if (!data.current || typeof data.current.weather_code !== 'number') {
+    throw new Error('Invalid weather API response');
+  }
+  return data.current.weather_code;  // 숫자 코드
+}
+
+// ⭐ 2) weather_code → Sunny / Cloudy / Rainy 텍스트로 매핑
+function mapCodeToWeatherText(code) {
+  if ([0, 1].includes(code)) return "Sunny";              // 맑음
+  if ([2, 3, 45, 48].includes(code)) return "Cloudy";     // 구름/안개
+  return "Rainy";                                         // 나머지는 비/눈 쪽
+}
+
+// ⭐ 3) 현재 위치 기반으로 날씨 자동 감지
+async function autoSetWeather() {
+  if (!$weatherResult) return;
+
+  $weatherResult.textContent = "Detecting your current weather...";
+
+  if (!navigator.geolocation) {
+    $weatherResult.textContent = "Geolocation not supported. Please pick manually.";
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        const code = await fetchWeatherByLatLon(lat, lon);
+        const w = mapCodeToWeatherText(code);
+
+        selectedWeather = w;  // ⭐ 자동으로 선택된 날씨 저장
+        $weatherResult.innerHTML =
+          `Detected weather: <strong>${w}</strong> (you can change it below)`;
+
+        announce(
+          `Detected weather: <strong>${w}</strong>. You can keep this or pick another one.`,
+          "muted"
+        );
+      } catch (e) {
+        console.error(e);
+        $weatherResult.textContent = "Weather detection failed. Please pick manually.";
+      }
+    },
+    (err) => {
+      console.error(err);
+      $weatherResult.textContent = "Weather detection blocked. Please pick manually.";
+    }
+  );
+}
+
+// ⭐ 4) 수정된 날씨 단계
+function gotoWeatherStep(){
+  if(!selectedStyle){
+    announce('Please select an emotion or finish face detection first.','muted');
+    return;
+  }
+  step = 2;
+  $predSection.classList.add('hidden');
+  $weatherSection.classList.remove('hidden');
+  $finalSection.classList.add('hidden');
+
+  if ($weatherResult) {
+    $weatherResult.textContent = "Detecting your current weather...";
+  }
+  autoSetWeather();
+}
+
   // === Auto weather detection ===
 async function autoSetWeather() {
   navigator.geolocation.getCurrentPosition(
@@ -537,21 +615,10 @@ async function autoSetWeather() {
   );
 }
 
-function gotoWeatherStep(){
-  if(!selectedStyle){
-    announce('Please select an emotion or finish face detection first.','muted');
-    return;
-  }
-  step = 2;
-
-  // 화면 전환
-  $predSection.classList.add('hidden');
-  $weatherSection.classList.remove('hidden');
-  $finalSection.classList.add('hidden');
 
   // ⭐ 자동 날씨 감지 실행
   autoSetWeather();
-}
+
 
 
   function showFinalCard(){
