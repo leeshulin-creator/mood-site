@@ -529,53 +529,70 @@ function renderBars(list) {
 /************************************************************
  * 15) RENDER CARDS
  ************************************************************/
-function renderCards(list) {
-  grid.innerHTML = "";
-  grid.style.gridTemplateColumns =
-    window.innerWidth >= 960 ? "1fr 1fr" : "1fr";
-
-  list.forEach(card => {
-    const el = document.createElement("article");
-    el.className = "rec-card";
-
-    el.style.cssText = `
-      border:1px solid #eee;
-      border-radius:12px;
-      overflow:hidden;
-      background:#fff;
-      box-shadow:0 6px 20px rgba(0,0,0,.06)
-    `;
-
-    el.innerHTML = `
-      <div style="aspect-ratio:4/3;background:#f0f0f0">
-        <img src="${card.hero}" style="width:100%;height:100%;object-fit:cover">
-      </div>
-      <div style="padding:12px">
-        <h3>${card.title}</h3>
-        <p>
-          <strong>${card.mood}</strong> · ${card.weather} ·
-          <span style="background:#f5f5f5;border-radius:8px;padding:2px 6px">
-            ${card.palette_text}
-          </span>
-        </p>
-        <div style="display:flex;gap:12px">
-          <div>
-            <div style="font-weight:600">Items</div>
-            <ul>${card.items.map(i => `<li>${i}</li>`).join("")}</ul>
-          </div>
-          <div>
-            <div style="font-weight:600">Accessories</div>
-            <ul>${card.accessories.map(a => `<li>${a}</li>`).join("")}</ul>
-          </div>
+function renderCards(list){
+    if (!grid || !Array.isArray(list)) return;
+  
+    grid.style.gridTemplateColumns = "1fr";  // 1열 유지
+    grid.innerHTML = '';
+  
+    list.forEach(card => {
+      const el = document.createElement('article');
+      el.className = 'rec-card';
+      el.style.cssText =
+        'display:flex;' +
+        'gap:20px;' +
+        'align-items:flex-start;' +
+        'border:1px solid #eee;' +
+        'border-radius:12px;' +
+        'padding:16px;' +
+        'background:#fff;' +
+        'box-shadow:0 6px 20px rgba(0,0,0,.06);' +
+        'flex-wrap:wrap;';
+  
+      const heroImg = `
+        <div style="flex:0 0 360px; max-width:360px;">
+          <img
+            src="${card.hero || 'assets_img/placeholder.jpg'}"
+            alt="${card.title}"
+            style="width:100%; height:auto; border-radius:10px; object-fit:cover;"
+          >
         </div>
-        <p style="margin-top:8px">${card.description}</p>
-      </div>
-    `;
-
-    grid.appendChild(el);
-  });
-}
-
+      `;
+  
+      const textBlock = `
+        <div style="flex:1; min-width:260px;">
+          <h3 style="margin:0 0 6px; font-size:22px;">${card.title}</h3>
+  
+          <p style="margin:0 0 6px; color:#666; line-height:1.4;">
+            <strong>${card.mood}</strong> · ${card.weather}<br>
+            <span style="background:#f5f5f5; border-radius:8px; padding:2px 6px;">
+              ${card.palette_text || ''}
+            </span>
+          </p>
+  
+          <div style="margin-top:10px;">
+            <strong>Items</strong>
+            <ul style="margin:4px 0 10px; padding-left:18px;">
+              ${(card.items || []).map(i => `<li>${i}</li>`).join('')}
+            </ul>
+  
+            <strong>Accessories</strong>
+            <ul style="margin:4px 0 10px; padding-left:18px;">
+              ${(card.accessories || []).map(a => `<li>${a}</li>`).join('')}
+            </ul>
+          </div>
+  
+          <p style="margin:8px 0 0; color:#444; line-height:1.5;">
+            ${card.description || ''}
+          </p>
+        </div>
+      `;
+  
+      el.innerHTML = heroImg + textBlock;
+      grid.appendChild(el);
+    });
+  }
+  
 
 /************************************************************
  * 16) RECOMMENDATION DATA
