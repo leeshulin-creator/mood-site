@@ -1,3 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mood Classifier — Style Recommender</title>
+
+  <!-- Google Font: Fredoka -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style2.css">
+
+  <!-- Teachable Machine Image library & TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+</head>
+<body>
+
+  <!-- 🌸 Hero Section -->
+  <section id="hero">
+    <div class="hero-inner">
+      <h1 class="hero-title">
+        Check your mood.<br>
+        Match your style.<br>
+        <span class="hero-accent">Start your day with confidence.</span>
+      </h1>
+
+      <img src="assets_img/hero.jpg" alt="Fashion mood cover" class="hero-img">
+
+      <button id="heroStart" class="hero-btn">
+        ✨ Start your style journey
+      </button>
+    </div>
+  </section>
+
+  <!-- 🌙 Main Page (처음엔 숨김) -->
+  <main class="grid hiddenPage" id="mainPage">
+
+    <!-- Overview -->
+    <section class="card">
+      <h2>Overview</h2>
+      <p class="muted">
+        Input → inference → feedback → action · Shows top-K labels and probabilities · Gives guidance when confidence is low.
+      </p>
+    </section>
+
+    <!-- 1) Controls & Preview -->
+    <section class="card" aria-labelledby="controls-title">
+      <h2 id="controls-title">1) Input & Controls</h2>
+
+      <div class="row" style="margin-top:8px">
+        <button id="btnCam" class="primary" aria-pressed="false" aria-controls="video" title="Use camera" disabled>Start Camera</button>
+        <button id="btnCapture" title="Capture after 3 seconds" disabled>📷 Capture in 3s</button>
+        <label for="file" class="sr-only">Upload image</label>
+        <input id="file" type="file" accept="image/*" title="Upload image file" />
+        <button id="btnReset" title="Reset preview">Reset</button>
+      </div>
+
+      <div style="margin-top:12px" class="row">
+        <video id="video" class="preview hidden" playsinline muted aria-label="Camera preview"></video>
+        <img id="img" class="preview hidden" alt="Uploaded image preview" />
+        <canvas id="canvas" class="preview hidden" aria-hidden="true"></canvas>
+      </div>
+
+      <div id="countdown" class="hidden"
+           style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+                 font-size:72px; font-weight:700; color:#fff; text-shadow:0 0 10px #000;">
+      </div>
+
+      <div id="status" class="muted" style="margin-top:8px">Idle…</div>
+      <div id="msg" class="hidden" role="status" aria-live="polite" style="margin-top:8px"></div>
+    </section>
+
+    <!-- 2) Prediction Results -->
+    <section class="card fade-in" aria-labelledby="pred-title" id="pred-section">
+      <h2 id="pred-title">2) Prediction Results</h2>
+      <p class="muted">Shows the top-K labels and probabilities. Provides guidance when confidence is low.</p>
+
+      <div id="progressBox" class="hidden" style="margin-bottom:8px">
+        <label for="progress" class="muted">Loading model</label>
+        <progress id="progress" max="100" value="0"></progress>
+      </div>
+
+      <div id="predictions" class="log" style="min-height:140px" aria-live="polite" aria-atomic="true">
+        Waiting for results…
+      </div>
+
+      <div id="bars" class="barlist" aria-hidden="false"></div>
+
+      <div id="guidance" class="muted" style="margin-top:10px"></div>
+
+      <div class="row" style="margin-top:10px">
+        <button id="btnNextWeather" class="primary" disabled>Next: Choose Weather</button>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <span class="badge">Manual selection</span>
+        <button data-emote="happy"   id="pickHappy"   title="Happy">🙂 Happy</button>
+        <button data-emote="neutral" id="pickNeutral" title="Neutral">😐 Neutral</button>
+        <button data-emote="sad"     id="pickSad"     title="Sad">😢 Sad</button>
+        <button data-emote="angry"   id="pickAngry"   title="Angry">😠 Angry</button>
+      </div>
+    </section>
+
+    <!-- 3) Status & Errors -->
+    <section class="card" aria-labelledby="notes-title">
+      <h2 id="notes-title">3) Status & Errors</h2>
+      <ul id="notes" class="muted" style="line-height:1.6">
+        <li>Shows error states as human-readable messages.</li>
+        <li>Handles network issues, permission denial, invalid files, and model load failures.</li>
+        <li>No server calls — all inference runs in the browser (with a simple rate-limit).</li>
+      </ul>
+      <div id="errorBox" class="error hidden" role="alert"></div>
+      <div id="okBox" class="good hidden">System is running normally.</div>
+    </section>
+
+    <!-- 4) Weather selection -->
+    <section class="card hidden" id="weather-section">
+      <h2>3) Choose Weather</h2>
+      <p class="muted">Pick today’s weather.</p>
+
+      <!-- 자동 감지 표시 -->
+      <div id="weatherResult" class="muted" style="margin-top:8px;"></div>
+
+      <div class="row" style="margin-top:8px">
+        <button data-weather="Sunny">☀️ Sunny</button>
+        <button data-weather="Cloudy">⛅ Cloudy</button>
+        <button data-weather="Rainy">🌧️ Rainy</button>
+      </div>
+    </section>
+
+    <!-- 5) Final Recommendation -->
+    <section class="card hidden" aria-labelledby="final-title" id="final-section">
+      <h2 id="final-title">Final Recommendation</h2>
+      <div id="card-grid" style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px"></div>
+      <div class="row" style="margin-top:12px">
+        <button id="btnRestart">Start Over</button>
+      </div>
+    </section>
+
+  </main>
+
 <script>
   const EMOJI = {
     happy: "🙂 Happy",
@@ -152,6 +297,7 @@
       };
 
       $img.src = url;
+
     }catch(e){
       setError('Error while processing file: '+ e.message);
     }
@@ -263,7 +409,7 @@
     gotoWeatherStep();
   });
 
-  // Weather buttons (수동 선택도 유지)
+  // Weather buttons (manual override)
   $weatherSection.querySelectorAll('button[data-weather]').forEach(btn=>{
     btn.addEventListener('click',()=>{
       selectedWeather = btn.getAttribute('data-weather');
@@ -273,10 +419,7 @@
 
   // Restart
   $btnRestart.addEventListener('click',()=>{
-    selectedEmotion = null;
-    selectedStyle = null;
-    selectedWeather = null;
-    step = 1;
+    selectedEmotion = null; selectedStyle = null; selectedWeather = null; step = 1;
     $predSection.classList.remove('hidden');
     $weatherSection.classList.add('hidden');
     $finalSection.classList.add('hidden');
@@ -301,7 +444,27 @@
     announce('Reset complete.','muted');
   });
 
-  // === 6) Inference ===
+  // === Weather API ===
+  async function fetchWeatherByLatLon(lat, lon) {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error('Weather API error: ' + res.status);
+    }
+    const data = await res.json();
+    if (!data.current || typeof data.current.weather_code !== 'number') {
+      throw new Error('Invalid weather API response');
+    }
+    return data.current.weather_code;
+  }
+
+  function mapCodeToWeatherText(code) {
+    if ([0, 1].includes(code)) return "Sunny";
+    if ([2, 3, 45, 48].includes(code)) return "Cloudy";
+    return "Rainy";
+  }
+
+  // === 7) Inference ===
   async function predictOnce(sourceEl){
     if(!model){
       announce('Please load the model first.','muted');
@@ -325,10 +488,7 @@
 
     const best = sorted[0];
     if(best && best.probability < LOW_CONF){
-      $guide.innerHTML =
-        'Low confidence. Try <strong>simplifying the background</strong>, ' +
-        '<strong>improving lighting</strong>, and ' +
-        '<strong>filling the frame with your face</strong>, then run it again.';
+      $guide.innerHTML = 'Low confidence. Try <strong>simplifying the background</strong>, <strong>improving lighting</strong>, and <strong>filling the frame with your face</strong>, then run it again.';
     }else{
       $guide.textContent = '';
     }
@@ -354,33 +514,11 @@
     selectedStyle = MOOD_TO_STYLE[emote] || null;
     $btnNextWeather.disabled = !selectedStyle;
     if(selectedStyle){
-      announce(
-        `Emotion: <strong>${emote}</strong> → Style: <strong>${selectedStyle}</strong>`,
-        'muted'
-      );
+      announce(`Emotion: <strong>${emote}</strong> → Style: <strong>${selectedStyle}</strong>`, 'muted');
     }
   }
 
-  // === 7) Weather API (Open-Meteo) ===
-  async function fetchWeatherByLatLon(lat, lon) {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error('Weather API error: ' + res.status);
-    }
-    const data = await res.json();
-    if (!data.current || typeof data.current.weather_code !== 'number') {
-      throw new Error('Invalid weather API response');
-    }
-    return data.current.weather_code;
-  }
-
-  function mapCodeToWeatherText(code) {
-    if ([0, 1].includes(code)) return "Sunny";          // 맑음
-    if ([2, 3, 45, 48].includes(code)) return "Cloudy"; // 구름/안개
-    return "Rainy";                                     // 나머지 → 비/눈
-  }
-
+  // === 현재 위치 기반 날씨 자동 감지 ===
   async function autoSetWeather() {
     if (!$weatherResult) return;
 
@@ -419,7 +557,7 @@
     );
   }
 
-  // === 8) Weather step 전환 ===
+  // === 날씨 단계로 이동 ===
   function gotoWeatherStep(){
     if(!selectedStyle){
       announce('Please select an emotion or finish face detection first.','muted');
@@ -436,7 +574,6 @@
     autoSetWeather();
   }
 
-  // === 9) Final card ===
   function showFinalCard(){
     if (!selectedStyle || !selectedWeather) {
       announce('Style or weather information is missing. Please select again.','muted');
@@ -458,7 +595,7 @@
     $finalSection.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  // === 10) Network status ===
+  // === 9) Network status ===
   function updateOnline(){
     if(navigator.onLine){ setOk('Online — model can run.'); }
     else{ setError('Offline — the first model load requires an internet connection.'); }
@@ -466,13 +603,13 @@
   window.addEventListener('online', updateOnline);
   window.addEventListener('offline', updateOnline);
 
-  // === 11) Init ===
+  // === 10) Init ===
   (async ()=>{
     updateOnline();
     await loadModel();
   })();
 
-  // ====== 12) Card data ======
+  // ====== 11) Card data ======
   const RECOMMENDATIONS = [
     { id:"active_sunny",  title:"Active × Sunny",  mood:"Active",  weather:"Sunny",
       hero:"assets_img/active_sunny.jpg",
@@ -668,8 +805,10 @@
     }, 300);
   });
 
-  // 레이아웃 변경 시 카드 레이아웃 재조정 (필요하면 확장)
   window.addEventListener('resize',()=>{
-    // 필요하면 여기서 다시 renderCards 호출할 수 있음
+    // 필요하면 여기서 다시 renderCards 호출 가능
   });
 </script>
+
+</body>
+</html>
