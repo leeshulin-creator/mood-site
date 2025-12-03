@@ -1,676 +1,675 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mood Classifier — Style Recommender</title>
-
-  <!-- Google Font: Fredoka -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="style2.css">
-
-  <!-- TensorFlow + Teachable Machine -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-</head>
-<body>
-
-  <!-- 🌸 Hero Section -->
-  <section id="hero">
-    <div class="hero-inner">
-      <h1 class="hero-title">
-        Check your mood.<br>
-        Match your style.<br>
-        <span class="hero-accent">Start your day with confidence.</span>
-      </h1>
-
-      <img src="assets_img/hero.jpg" alt="Fashion mood cover" class="hero-img">
-
-      <button id="heroStart" class="hero-btn">
-        ✨ Start your style journey
-      </button>
-    </div>
-  </section>
-
-  <!-- 🌙 Main Page -->
-  <main class="grid hiddenPage" id="mainPage">
-
-    <section class="card">
-      <h2>Overview</h2>
-      <p class="muted">Input → inference → feedback → action.</p>
-    </section>
-
-    <!-- 1) Controls -->
-    <section class="card">
-      <h2>1) Input & Controls</h2>
-
-      <div class="row" style="margin-top:8px">
-        <button id="btnCam" class="primary" disabled>Start Camera</button>
-        <button id="btnCapture" disabled>📷 Capture in 3s</button>
-        <label for="file" class="sr-only">Upload image</label>
-        <input id="file" type="file" accept="image/*" />
-        <button id="btnReset">Reset</button>
-      </div>
-
-      <div class="row" style="margin-top:12px">
-        <video id="video" class="preview hidden" playsinline muted></video>
-        <img id="img" class="preview hidden" />
-        <canvas id="canvas" class="preview hidden"></canvas>
-      </div>
-
-      <div id="countdown" class="hidden"
-           style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-                 font-size:72px; font-weight:700; color:#fff; text-shadow:0 0 10px #000;">
-      </div>
-
-      <div id="status" class="muted" style="margin-top:8px">Idle…</div>
-      <div id="msg" class="hidden" aria-live="polite" style="margin-top:8px"></div>
-    </section>
-
-    <!-- 2) Predictions -->
-    <section class="card fade-in" id="pred-section">
-      <h2>2) Prediction Results</h2>
-      <p class="muted">Top-K labels with probabilities.</p>
-
-      <div id="progressBox" class="hidden" style="margin-bottom:8px">
-        <label class="muted">Loading model</label>
-        <progress id="progress" max="100" value="0"></progress>
-      </div>
-
-      <div id="predictions" class="log" style="min-height:140px">Waiting for results…</div>
-      <div id="bars" class="barlist"></div>
-      <div id="guidance" class="muted" style="margin-top:10px"></div>
-
-      <div class="row" style="margin-top:10px">
-        <button id="btnNextWeather" class="primary" disabled>Next: Choose Weather</button>
-      </div>
-
-      <div class="row" style="margin-top:8px">
-        <span class="badge">Manual</span>
-        <button data-emote="happy" id="pickHappy">🙂 Happy</button>
-        <button data-emote="neutral" id="pickNeutral">😐 Neutral</button>
-        <button data-emote="sad" id="pickSad">😢 Sad</button>
-        <button data-emote="angry" id="pickAngry">😠 Angry</button>
-      </div>
-    </section>
-
-    <!-- 3) Weather -->
-    <section class="card hidden" id="weather-section">
-      <h2>3) Choose Weather</h2>
-      <p class="muted">Auto detected or choose manually.</p>
-
-      <div id="weatherResult" class="muted" style="margin-top:8px;"></div>
-
-      <div class="row" style="margin-top:8px">
-        <button data-weather="Sunny">☀️ Sunny</button>
-        <button data-weather="Cloudy">⛅ Cloudy</button>
-        <button data-weather="Rainy">🌧️ Rainy</button>
-      </div>
-    </section>
-
-    <!-- 4) Final -->
-    <section class="card hidden" id="final-section">
-      <h2>Final Recommendation</h2>
-      <div id="card-grid" style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px"></div>
-      <div class="row" style="margin-top:12px">
-        <button id="btnRestart">Start Over</button>
-      </div>
-    </section>
-
-  </main>
-
 <script>
-/* ------------------------------
-  CONFIG + DOM
------------------------------- */
-const MODEL_URL = "https://teachablemachine.withgoogle.com/models/4nP7aQpCm/";
-const TOP_K = 3;
-const LOW_CONF = 0.6;
-const CAM_INFER_MS = 300;
-
-const el = id => document.getElementById(id);
-const EMOJI = {
-  happy:"🙂 Happy",
-  sad:"😢 Sad",
-  angry:"😠 Angry",
-  neutral:"😐 Neutral"
-};
-
-const $status = el("status");
-const $msg = el("msg");
-const $video = el("video");
-const $img = el("img");
-const $canvas = el("canvas");
-const $pred = el("predictions");
-const $bars = el("bars");
-const $guide = el("guidance");
-const $err = el("errorBox");
-const $ok = el("okBox");
-const $progress = el("progress");
-const $progressBox = el("progressBox");
-const $btnCam = el("btnCam");
-const $file = el("file");
-const $btnReset = el("btnReset");
-const $btnNextWeather = el("btnNextWeather");
-const $weatherSection = el("weather-section");
-const $finalSection = el("final-section");
-const $predSection = el("pred-section");
-const $btnRestart = el("btnRestart");
-const $btnCapture = el("btnCapture");
-const $countdown = el("countdown");
-const $weatherResult = el("weatherResult");
-
-/* ------------------------------
-  STATE
------------------------------- */
-let model, maxPredictions;
-let webcamStream = null;
-let inferTimer = null;
-let lastInfer = 0;
-let isCountingDown = false;
-
-let selectedEmotion = null;
-let selectedStyle = null;
-let selectedWeather = null;
-
-const MOOD_TO_STYLE = {
-  happy:"Active",
-  neutral:"Minimal",
-  sad:"Cozy",
-  angry:"Street"
-};
-
-/* ------------------------------
-  HELPERS
------------------------------- */
-function announce(html, cls="") {
-  $msg.className = cls;
-  $msg.innerHTML = html;
-  $msg.classList.remove("hidden");
-}
-
-function setError(t) {
-  $err.textContent = t;
-  $err.classList.remove("hidden");
-  if ($ok) $ok.classList.add("hidden");
-}
-
-function setOk(t="System OK") {
-  if ($ok) {
-    $ok.textContent = t;
-    $ok.classList.remove("hidden");
-  }
-  if ($err) $err.classList.add("hidden");
-}
-
-/* ------------------------------
-  LOAD MODEL
------------------------------- */
-async function loadModel() {
-  try {
-    $status.textContent = "Loading model…";
-    $progressBox.classList.remove("hidden");
-
-    let p = 0;
-    const timer = setInterval(()=>{
-      p = Math.min(p+8, 96);
-      $progress.value = p;
-    }, 120);
-
-    const modelURL = MODEL_URL + "model.json";
-    const metaURL = MODEL_URL + "metadata.json";
-
-    model = await tmImage.load(modelURL, metaURL);
-
-    clearInterval(timer);
-    $progress.value = 100;
-    setTimeout(()=> $progressBox.classList.add("hidden"), 300);
-
-    maxPredictions = model.getTotalClasses();
-    $btnCam.disabled = false;
-    $status.textContent = "Ready. Choose an input.";
-  } catch(e) {
-    console.error(e);
-    setError("Failed to load model: " + e.message);
-  }
-}
-
-/* ------------------------------
-  FILE UPLOAD
------------------------------- */
-$file.addEventListener("change", ev=>{
-  const f = ev.target.files?.[0];
-  if (!f) return announce("No file selected.","muted");
-  if (!f.type.startsWith("image/")) return setError("Invalid image file.");
-
-  stopCamera();
-  $video.classList.add("hidden");
-  $img.classList.remove("hidden");
-
-  const url = URL.createObjectURL(f);
-  $img.onload = async ()=>{
-    URL.revokeObjectURL(url);
-    await predictOnce($img);
+  const EMOJI = {
+    happy: "🙂 Happy",
+    sad: "😢 Sad",
+    angry: "😠 Angry",
+    neutral: "😐 Neutral"
   };
-  $img.src = url;
-});
 
-/* ------------------------------
-  CAMERA
------------------------------- */
-async function startCamera(){
-  try {
-    stopCamera();
-    webcamStream = await navigator.mediaDevices.getUserMedia({ video:true });
-    $video.srcObject = webcamStream;
-    $video.play();
-    $video.classList.remove("hidden");
-    $img.classList.add("hidden");
-    $btnCapture.disabled = false;
-    $btnCam.textContent = "Stop Camera";
-  } catch(e){
-    setError("Camera error: " + e.message);
+  // === 0) Config ===
+  const MODEL_URL = "https://teachablemachine.withgoogle.com/models/4nP7aQpCm/";
+  const TOP_K = 3;
+  const LOW_CONF = 0.6;
+  const CAM_INFER_MS = 300;
+
+  // === 1) DOM helpers & refs ===
+  const el = (id)=>document.getElementById(id);
+  const $status = el('status');
+  const $msg = el('msg');
+  const $video = el('video');
+  const $img = el('img');
+  const $canvas = el('canvas');
+  const $pred = el('predictions');
+  const $bars = el('bars');
+  const $guide = el('guidance');
+  const $err = el('errorBox');
+  const $ok = el('okBox');
+  const $progress = el('progress');
+  const $progressBox = el('progressBox');
+
+  const $btnCam = el('btnCam');
+  const $file = el('file');
+  const $btnReset = el('btnReset');
+  const $btnNextWeather = el('btnNextWeather');
+  const $weatherSection = el('weather-section');
+  const $finalSection = el('final-section');
+  const $predSection = el('pred-section');
+  const $btnRestart = el('btnRestart');
+  const $btnCapture = el('btnCapture');
+  const $countdown = el('countdown');
+  const $weatherResult = el('weatherResult');
+
+  // === State ===
+  const MOOD_TO_STYLE = { happy:"Active", neutral:"Minimal", sad:"Cozy", angry:"Street" };
+  let step = 1;
+  let selectedEmotion = null;
+  let selectedStyle = null;
+  let selectedWeather = null;
+
+  let model, maxPredictions;
+  let webcamStream = null;
+  let inferTimer = null;
+  let lastInfer = 0;
+  let isCountingDown = false;
+
+  // Accessibility helpers
+  function announce(html, cls=""){
+    $msg.className = cls || "";
+    $msg.innerHTML = html;
+    $msg.classList.remove('hidden');
   }
-}
-
-function stopCamera(){
-  if (webcamStream) {
-    webcamStream.getTracks().forEach(t=>t.stop());
-    webcamStream = null;
+  function setError(e){
+    $err.textContent = e;
+    $err.classList.remove('hidden');
+    $ok.classList.add('hidden');
   }
-  $btnCapture.disabled = true;
-  $btnCam.textContent = "Start Camera";
-}
-
-$btnCam.addEventListener("click", ()=>{
-  if (webcamStream) stopCamera();
-  else startCamera();
-});
-
-$btnCapture.addEventListener("click", ()=>{
-  if (!webcamStream) return announce("Turn on camera first.");
-
-  let count = 3;
-  isCountingDown = true;
-  $countdown.textContent = count;
-  $countdown.classList.remove("hidden");
-
-  const timer = setInterval(async()=>{
-    count--;
-    if (count>0) {
-      $countdown.textContent = count;
-    } else {
-      clearInterval(timer);
-      $countdown.classList.add("hidden");
-      isCountingDown = false;
-      await predictOnce($video);
-    }
-  },1000);
-});
-
-/* ------------------------------
-  MANUAL EMOTION Buttons
------------------------------- */
-["pickHappy","pickNeutral","pickSad","pickAngry"].forEach(id=>{
-  const b = el(id);
-  if (!b) return;
-  b.addEventListener("click",()=>{
-    const val = b.getAttribute("data-emote");
-    if (val) setEmotionAndEnableNext(val);
-  });
-});
-
-/* ------------------------------
-  WEATHER API
------------------------------- */
-async function fetchWeatherByLatLon(lat, lon){
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code`;
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.current.weather_code;
-}
-
-function mapCodeToWeatherText(code){
-  if ([0,1].includes(code)) return "Sunny";
-  if ([2,3,45,48].includes(code)) return "Cloudy";
-  return "Rainy";
-}
-
-/* ------------------------------
-  AUTO WEATHER
------------------------------- */
-async function autoSetWeather(){
-  if (!navigator.geolocation) {
-    $weatherResult.textContent = "Geolocation not supported.";
-    return;
+  function setOk(t="System is running normally."){
+    $ok.textContent = t;
+    $ok.classList.remove('hidden');
+    $err.classList.add('hidden');
   }
 
-  $weatherResult.textContent = "Detecting weather...";
-
-  navigator.geolocation.getCurrentPosition(
-    async pos=>{
-      try {
-        const code = await fetchWeatherByLatLon(pos.coords.latitude, pos.coords.longitude);
-        const w = mapCodeToWeatherText(code);
-        selectedWeather = w;
-        $weatherResult.innerHTML = `Detected weather: <strong>${w}</strong>`;
-      } catch(e){
-        $weatherResult.textContent = "Weather detection failed.";
+  // === 3) Load model ===
+  async function loadModel(){
+    try{
+      if (typeof tmImage === 'undefined') {
+        throw new Error('Teachable Machine library (tmImage) is not loaded. Please check your network or CDN blocking.');
       }
-    },
-    ()=>{
-      $weatherResult.textContent = "Location permission denied.";
+      if (!window.isSecureContext && !location.hostname.match(/^localhost|127\.0\.0\.1$/)) {
+        console.warn('Insecure context: camera access requires HTTPS or localhost.');
+      }
+      if(!MODEL_URL || !MODEL_URL.startsWith('http')){
+        throw new Error('Please set a valid MODEL_URL.');
+      }
+
+      $status.textContent = 'Loading model…';
+      $progressBox.classList.remove('hidden');
+
+      let p=0;
+      const t = setInterval(()=>{
+        p = Math.min(p+8, 96);
+        $progress.value = p;
+      }, 120);
+
+      const modelURL = MODEL_URL + 'model.json';
+      const metadataURL = MODEL_URL + 'metadata.json';
+      try{
+        const [headModel, headMeta] = await Promise.all([
+          fetch(modelURL, { method:'GET' }),
+          fetch(metadataURL, { method:'GET' })
+        ]);
+        if(!headModel.ok) throw new Error('model.json responded with '+headModel.status+'. Please check the URL or public access settings.');
+        if(!headMeta.ok) throw new Error('metadata.json responded with '+headMeta.status+'. Please check the URL or public access settings.');
+      }catch(pre){
+        clearInterval(t);
+        $progress.value=0;
+        $progressBox.classList.add('hidden');
+        throw pre;
+      }
+
+      model = await tmImage.load(modelURL, metadataURL);
+      clearInterval(t);
+      $progress.value = 100;
+      setTimeout(()=>{$progressBox.classList.add('hidden');}, 300);
+
+      maxPredictions = model.getTotalClasses();
+      setOk('Model loaded ('+maxPredictions+' classes).');
+      $btnCam.disabled = false;
+      $status.textContent = 'Ready. Choose an input to start.';
+    }catch(e){
+      console.error(e);
+      setError('Failed to load model: '+ e.message);
+      $status.textContent = 'Stopped due to an error.';
     }
-  );
-}
-
-/* ------------------------------
-  GOTO WEATHER STEP
------------------------------- */
-function gotoWeatherStep(){
-  if (!selectedStyle) {
-    announce("Please finish face detection first.","muted");
-    return;
   }
 
-  $predSection.classList.add("hidden");
-  $weatherSection.classList.remove("hidden");
-  $finalSection.classList.add("hidden");
+  // === 4) File upload (이미지 로드 후 예측) ===
+  $file.addEventListener('change', (ev)=>{
+    try{
+      const f = ev.target.files && ev.target.files[0];
+      if(!f){
+        announce('No file selected.','muted');
+        return;
+      }
+      if(!f.type.startsWith('image/')){
+        setError('This is not a valid image file.');
+        return;
+      }
 
-  autoSetWeather();
-}
+      stopCamera();
+      $video.classList.add('hidden');
+      $img.classList.remove('hidden');
 
-$btnNextWeather.addEventListener("click", gotoWeatherStep);
+      const url = URL.createObjectURL(f);
 
-/* ------------------------------
-  WEATHER MANUAL BUTTONS
------------------------------- */
-$weatherSection.querySelectorAll("button[data-weather]").forEach(btn=>{
-  btn.addEventListener("click",()=>{
-    selectedWeather = btn.getAttribute("data-weather");
-    showFinalCard();
+      $img.onload = async ()=>{
+        URL.revokeObjectURL(url);
+        try{
+          await predictOnce($img);
+        }catch(e){
+          setError('Error predicting image: ' + e.message);
+        }
+      };
+
+      $img.src = url;
+    }catch(e){
+      setError('Error while processing file: '+ e.message);
+    }
   });
-});
 
-/* ------------------------------
-  INFERENCE
------------------------------- */
-async function predictOnce(source){
-  if (!model) return announce("Load model first.");
+  // === 5) Camera ===
+  async function startCamera(){
+    try{
+      stopCamera();
+      $status.textContent = 'Requesting camera permission…';
+      webcamStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
+      $video.srcObject = webcamStream;
+      $video.muted = true;
+      $video.setAttribute('playsinline','');
+      await $video.play();
 
-  const W = 224, H = 224;
-  $canvas.width = W; $canvas.height = H;
-  const ctx = $canvas.getContext("2d");
-  ctx.drawImage(source,0,0,W,H);
+      $img.classList.add('hidden');
+      $video.classList.remove('hidden');
+      $btnCapture.disabled = false;
 
-  const preds = await model.predict($canvas);
-  const sorted = preds.sort((a,b)=>b.probability - a.probability).slice(0,TOP_K);
-
-  $pred.textContent = sorted
-    .map(p => `${p.className} - ${(p.probability*100).toFixed(1)}%`)
-    .join("\n");
-
-  renderBars(sorted);
-
-  const best = sorted[0];
-  if (!best) return;
-
-  const label = best.className.toLowerCase();
-  let emote = null;
-  if (label.includes("happy")) emote = "happy";
-  if (label.includes("neutral")) emote = "neutral";
-  if (label.includes("sad")) emote = "sad";
-  if (label.includes("angry")) emote = "angry";
-
-  if (emote) setEmotionAndEnableNext(emote);
-}
-
-function setEmotionAndEnableNext(emote){
-  selectedEmotion = emote;
-  selectedStyle = MOOD_TO_STYLE[emote];
-  $btnNextWeather.disabled = !selectedStyle;
-  announce(`Emotion: ${emote} → Style: ${selectedStyle}`,"muted");
-}
-
-/* ------------------------------
-  RENDER BARS
------------------------------- */
-function renderBars(list){
-  $bars.innerHTML = "";
-  if (!list) return;
-
-  const top1 = list[0];
-
-  list.forEach(p=>{
-    const pct = Math.round(p.probability * 100);
-    const key =
-      p.className.toLowerCase().includes("happy") ? "happy" :
-      p.className.toLowerCase().includes("sad") ? "sad" :
-      p.className.toLowerCase().includes("angry") ? "angry" :
-      "neutral";
-
-    const label =
-      (p === top1 ? "🔥 " : "") + EMOJI[key];
-
-    const row = document.createElement("div");
-    row.className = "bar-row";
-    row.innerHTML = `
-      <div class="bar-label">${label}</div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${pct}%"></div>
-      </div>
-      <div class="bar-pct">${pct}%</div>
-    `;
-    $bars.appendChild(row);
-  });
-}
-
-/* ------------------------------
-  FINAL CARD
------------------------------- */
-function showFinalCard(){
-  if (!selectedStyle || !selectedWeather) {
-    announce("Missing style or weather.","muted");
-    return;
+      $status.textContent = 'Camera input active…';
+      $btnCam.textContent = 'Stop Camera';
+      $btnCam.setAttribute('aria-pressed','true');
+    }catch(e){
+      console.error(e);
+      setError('Unable to start camera (permission denied or device not supported).');
+    }
   }
 
-  const target = RECOMMENDATIONS.find(
-    x => x.mood === selectedStyle && x.weather === selectedWeather
-  );
+  function stopCamera(){
+    if(inferTimer){clearInterval(inferTimer); inferTimer=null}
+    if(webcamStream){
+      webcamStream.getTracks().forEach(t=>t.stop());
+      webcamStream = null;
+    }
+    isCountingDown = false;
+    $countdown.classList.add('hidden');
+    $btnCapture.disabled = true;
+    $btnCam.textContent = 'Start Camera';
+    $btnCam.setAttribute('aria-pressed','false');
+  }
 
-  renderCards(target ? [target] : []);
+  function startCountdownAndCapture(){
+    if(!webcamStream){
+      announce('Please turn on the camera first.','muted');
+      return;
+    }
+    if(isCountingDown) return;
 
-  $predSection.classList.add("hidden");
-  $weatherSection.classList.add("hidden");
-  $finalSection.classList.remove("hidden");
-  $finalSection.scrollIntoView({ behavior:"smooth" });
-}
+    isCountingDown = true;
+    let count = 3;
 
-/* ------------------------------
-  RESTART
------------------------------- */
-$btnRestart.addEventListener("click", ()=>{
-  selectedEmotion = selectedStyle = selectedWeather = null;
+    $countdown.textContent = count;
+    $countdown.classList.remove('hidden');
+    $status.textContent = 'Taking a photo in 3 seconds…';
 
-  $predSection.classList.remove("hidden");
-  $weatherSection.classList.add("hidden");
-  $finalSection.classList.add("hidden");
+    const timer = setInterval(async () => {
+      count--;
+      if(count > 0){
+        $countdown.textContent = count;
+      }else{
+        clearInterval(timer);
+        $countdown.classList.add('hidden');
+        isCountingDown = false;
+        $status.textContent = 'Capturing frame…';
 
-  $pred.textContent = "Waiting for results…";
-  $guide.textContent = "";
-  $btnNextWeather.disabled = true;
+        try{
+          await predictOnce($video);
+          $status.textContent = 'Prediction complete.';
+        }catch(e){
+          console.error(e);
+          setError('Error while predicting from camera: ' + e.message);
+        }
+      }
+    }, 1000);
+  }
 
-  stopCamera();
-  $img.classList.add("hidden");
-  $video.classList.add("hidden");
-});
+  function startPredictLoop(){
+    if(!model || !$video || !webcamStream) return;
+    const loop = (ts) => {
+      if(!webcamStream) return;
+      if (ts - lastInfer >= CAM_INFER_MS) {
+        lastInfer = ts;
+        predictOnce($video).catch(console.warn);
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
 
-/* ------------------------------
-  RECOMMENDATION DATA
------------------------------- */
-const RECOMMENDATIONS = [
-  { id:"active_sunny", title:"Active × Sunny", mood:"Active", weather:"Sunny",
-    hero:"assets_img/active_sunny.jpg",
-    palette_text:"Red / Orange / Yellow",
-    items:["Cotton T-shirt","Mini skirt","Sneakers"],
-    accessories:["Sunglasses","Cap","Bracelet"],
-    description:"Bright energy that matches a sunny day." },
+  $btnCam.addEventListener('click',()=>{
+    if(webcamStream) stopCamera(); else startCamera();
+  });
 
-  { id:"active_cloudy", title:"Active × Cloudy", mood:"Active", weather:"Cloudy",
-    hero:"assets_img/active_cloudy.jpg",
-    palette_text:"Orange / Yellow (soft)",
-    items:["T-shirt + cardigan","Light pants"],
-    accessories:["Bucket hat","Small crossbody"],
-    description:"Light layers for cloudy days." },
+  $btnCapture.addEventListener('click', startCountdownAndCapture);
 
-  { id:"active_rainy", title:"Active × Rainy", mood:"Active", weather:"Rainy",
-    hero:"assets_img/active_rainy.jpg",
-    palette_text:"Bright inner + neutral outer",
-    items:["Rain jacket","Pants","Water sneakers"],
-    accessories:["Bucket hat","Backpack"],
-    description:"Add bright accents under waterproof layer." },
+  // Manual emotion selection
+  ['pickHappy','pickNeutral','pickSad','pickAngry'].forEach(id=>{
+    const elBtn = document.getElementById(id);
+    if(!elBtn) return;
+    elBtn.addEventListener('click',()=>{
+      const m = elBtn.getAttribute('data-emote');
+      if(m){ setEmotionAndEnableNext(m); }
+    });
+  });
 
-  { id:"minimal_sunny", title:"Minimal × Sunny", mood:"Minimal", weather:"Sunny",
-    hero:"assets_img/minimal_sunny.jpg",
-    palette_text:"Beige / Light Blue / White",
-    items:["Light blue shirt","White pants"],
-    accessories:["Mini tote","Metal watch"],
-    description:"Clean & bright minimalist look." },
+  // Next: weather selection
+  $btnNextWeather.addEventListener('click',()=>{
+    gotoWeatherStep();
+  });
 
-  { id:"minimal_cloudy", title:"Minimal × Cloudy", mood:"Minimal", weather:"Cloudy",
-    hero:"assets_img/minimal_cloudy.jpg",
-    palette_text:"Beige / Light Blue",
-    items:["Shirt + cardigan","Chino pants"],
-    accessories:["Slim belt","Sneakers"],
-    description:"Soft mid-tones for cloudy weather." },
+  // Weather buttons (수동 선택도 유지)
+  $weatherSection.querySelectorAll('button[data-weather]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      selectedWeather = btn.getAttribute('data-weather');
+      showFinalCard();
+    });
+  });
 
-  { id:"minimal_rainy", title:"Minimal × Rainy", mood:"Minimal", weather:"Rainy",
-    hero:"assets_img/minimal_rainy.jpg",
-    palette_text:"Beige trench",
-    items:["Trench coat","Shirt","Slacks"],
-    accessories:["Mini tote","Watch"],
-    description:"Clean silhouette for rainy day." },
+  // Restart
+  $btnRestart.addEventListener('click',()=>{
+    selectedEmotion = null;
+    selectedStyle = null;
+    selectedWeather = null;
+    step = 1;
+    $predSection.classList.remove('hidden');
+    $weatherSection.classList.add('hidden');
+    $finalSection.classList.add('hidden');
+    $pred.textContent = 'Waiting for results…';
+    $guide.textContent = '';
+    $btnNextWeather.disabled = true;
+    stopCamera();
+    $video.classList.add('hidden');
+    $img.classList.add('hidden');
+    setOk('Restarting from the beginning.');
+  });
 
-  { id:"cozy_sunny", title:"Cozy × Sunny", mood:"Cozy", weather:"Sunny",
-    hero:"assets_img/cozy_sunny.jpg",
-    palette_text:"Navy / Gray",
-    items:["Light knit","Relaxed pants"],
-    accessories:["Light scarf","Canvas bag"],
-    description:"Cozy and lightweight for sunny days." },
+  // Reset
+  $btnReset.addEventListener('click',()=>{
+    stopCamera();
+    $video.classList.add('hidden');
+    $img.src = '';
+    $img.classList.add('hidden');
+    $pred.textContent = 'Waiting for results…';
+    $guide.textContent = '';
+    setOk();
+    announce('Reset complete.','muted');
+  });
 
-  { id:"cozy_cloudy", title:"Cozy × Cloudy", mood:"Cozy", weather:"Cloudy",
-    hero:"assets_img/cozy_cloudy.jpg",
-    palette_text:"Warm textures",
-    items:["Knit sweater","Coat"],
-    accessories:["Scarf","Warm bag"],
-    description:"Warm tones for comfort on cloudy days." },
+  // === 6) Inference ===
+  async function predictOnce(sourceEl){
+    if(!model){
+      announce('Please load the model first.','muted');
+      return;
+    }
+    const W=224, H=224;
+    $canvas.width=W; $canvas.height=H;
+    const ctx=$canvas.getContext('2d');
+    ctx.drawImage(sourceEl,0,0,W,H);
 
-  { id:"cozy_rainy", title:"Cozy × Rainy", mood:"Cozy", weather:"Rainy",
-    hero:"assets_img/cozy_rainy.jpg",
-    palette_text:"Navy / Dark tones",
-    items:["Hooded coat","Dark jeans"],
-    accessories:["Chelsea boots","Umbrella"],
-    description:"Warm + water-ready cozy look." },
+    const predictions = await model.predict($canvas);
+    const sorted = predictions.sort((a,b)=>b.probability - a.probability).slice(0, TOP_K);
 
-  { id:"street_sunny", title:"Street × Sunny", mood:"Street", weather:"Sunny",
-    hero:"assets_img/street_sunny.jpg",
-    palette_text:"Purple / Brown / Green",
-    items:["Graphic tee","Cargo shorts"],
-    accessories:["Cap","Chain"],
-    description:"Street style with bright accents." },
+    const lines = sorted.map(p=>{
+      const pct = (p.probability*100).toFixed(1);
+      return `${p.className.padEnd(12,' ')}  ${pct}%`;
+    });
+    $pred.textContent = lines.join('\n');
 
-  { id:"street_cloudy", title:"Street × Cloudy", mood:"Street", weather:"Cloudy",
-    hero:"assets_img/street_cloudy.jpg",
-    palette_text:"Muted tones",
-    items:["Oversized hoodie","Wide pants"],
-    accessories:["Sneakers","Crossbody"],
-    description:"Bold silhouette for gray weather." },
+    renderBars(sorted);
 
-  { id:"street_rainy", title:"Street × Rainy", mood:"Street", weather:"Rainy",
-    hero:"assets_img/street_rainy.jpg",
-    palette_text:"Tech mix",
-    items:["Rain jacket","Cargo pants"],
-    accessories:["Bucket hat","Grip sneakers"],
-    description:"Techwear-inspired street look." }
-];
+    const best = sorted[0];
+    if(best && best.probability < LOW_CONF){
+      $guide.innerHTML =
+        'Low confidence. Try <strong>simplifying the background</strong>, ' +
+        '<strong>improving lighting</strong>, and ' +
+        '<strong>filling the frame with your face</strong>, then run it again.';
+    }else{
+      $guide.textContent = '';
+    }
 
-/* ------------------------------
-  RENDER CARDS
------------------------------- */
-const grid = document.getElementById("card-grid");
+    if (best) {
+      const label = (best.className || '').toLowerCase();
+      let emote = null;
+      if(label.includes('happy')) emote = 'happy';
+      else if(label.includes('neutral')) emote = 'neutral';
+      else if(label.includes('sad')) emote = 'sad';
+      else if(label.includes('angry')) emote = 'angry';
 
-function renderCards(list){
-  grid.innerHTML = "";
-  if (!list) return;
+      if(emote){
+        setEmotionAndEnableNext(emote);
+      }
+    }
 
-  list.forEach(card=>{
-    const el = document.createElement("article");
-    el.className = "rec-card";
-    el.style.cssText =
-      "border:1px solid #eee;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 6px 20px rgba(0,0,0,.06)";
+    setOk();
+  }
 
-    el.innerHTML = `
-      <div style="aspect-ratio:4/3;background:#f0f0f0">
-        <img src="${card.hero}" style="width:100%;height:100%;object-fit:cover">
-      </div>
-      <div style="padding:12px">
-        <h3 style="margin:0 0 6px;font-size:18px">${card.title}</h3>
-        <p style="margin:0 0 6px;color:#666">
-          <strong>${card.mood}</strong> · ${card.weather} ·
-          <span style="background:#f5f5f5;border-radius:8px;padding:2px 6px">${card.palette_text}</span>
-        </p>
-        <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
-          <div>
-            <div style="font-weight:600;margin-bottom:4px">Items</div>
-            <ul style="margin:0;padding-left:18px">
-              ${card.items.map(i=>`<li>${i}</li>`).join("")}
-            </ul>
-          </div>
-          <div>
-            <div style="font-weight:600;margin-bottom:4px">Accessories</div>
-            <ul style="margin:0;padding-left:18px">
-              ${card.accessories.map(a=>`<li>${a}</li>`).join("")}
-            </ul>
-          </div>
+  function setEmotionAndEnableNext(emote){
+    selectedEmotion = emote;
+    selectedStyle = MOOD_TO_STYLE[emote] || null;
+    $btnNextWeather.disabled = !selectedStyle;
+    if(selectedStyle){
+      announce(
+        `Emotion: <strong>${emote}</strong> → Style: <strong>${selectedStyle}</strong>`,
+        'muted'
+      );
+    }
+  }
+
+  // === 7) Weather API (Open-Meteo) ===
+  async function fetchWeatherByLatLon(lat, lon) {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error('Weather API error: ' + res.status);
+    }
+    const data = await res.json();
+    if (!data.current || typeof data.current.weather_code !== 'number') {
+      throw new Error('Invalid weather API response');
+    }
+    return data.current.weather_code;
+  }
+
+  function mapCodeToWeatherText(code) {
+    if ([0, 1].includes(code)) return "Sunny";          // 맑음
+    if ([2, 3, 45, 48].includes(code)) return "Cloudy"; // 구름/안개
+    return "Rainy";                                     // 나머지 → 비/눈
+  }
+
+  async function autoSetWeather() {
+    if (!$weatherResult) return;
+
+    $weatherResult.textContent = "Detecting your current weather...";
+
+    if (!navigator.geolocation) {
+      $weatherResult.textContent = "Geolocation not supported. Please pick manually.";
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const code = await fetchWeatherByLatLon(lat, lon);
+          const w = mapCodeToWeatherText(code);
+
+          selectedWeather = w;
+          $weatherResult.innerHTML =
+            `Detected weather: <strong>${w}</strong> (you can change it below)`;
+
+          announce(
+            `Detected weather: <strong>${w}</strong>. You can keep this or pick another one.`,
+            "muted"
+          );
+        } catch (e) {
+          console.error(e);
+          $weatherResult.textContent = "Weather detection failed. Please pick manually.";
+        }
+      },
+      (err) => {
+        console.error(err);
+        $weatherResult.textContent = "Weather detection blocked. Please pick manually.";
+      }
+    );
+  }
+
+  // === 8) Weather step 전환 ===
+  function gotoWeatherStep(){
+    if(!selectedStyle){
+      announce('Please select an emotion or finish face detection first.','muted');
+      return;
+    }
+    step = 2;
+    $predSection.classList.add('hidden');
+    $weatherSection.classList.remove('hidden');
+    $finalSection.classList.add('hidden');
+
+    if ($weatherResult) {
+      $weatherResult.textContent = "Detecting your current weather...";
+    }
+    autoSetWeather();
+  }
+
+  // === 9) Final card ===
+  function showFinalCard(){
+    if (!selectedStyle || !selectedWeather) {
+      announce('Style or weather information is missing. Please select again.','muted');
+      return;
+    }
+
+    const target = RECOMMENDATIONS.find(card =>
+      card.mood === selectedStyle && card.weather === selectedWeather
+    );
+    const list = target ? [target] : [];
+
+    renderCards(list);
+
+    step = 3;
+    $predSection.classList.add('hidden');
+    $weatherSection.classList.add('hidden');
+    $finalSection.classList.remove('hidden');
+
+    $finalSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // === 10) Network status ===
+  function updateOnline(){
+    if(navigator.onLine){ setOk('Online — model can run.'); }
+    else{ setError('Offline — the first model load requires an internet connection.'); }
+  }
+  window.addEventListener('online', updateOnline);
+  window.addEventListener('offline', updateOnline);
+
+  // === 11) Init ===
+  (async ()=>{
+    updateOnline();
+    await loadModel();
+  })();
+
+  // ====== 12) Card data ======
+  const RECOMMENDATIONS = [
+    { id:"active_sunny",  title:"Active × Sunny",  mood:"Active",  weather:"Sunny",
+      hero:"assets_img/active_sunny.jpg",
+      palette_text:"Red / Orange / Yellow (high energy)",
+      items:["Cotton T-shirt","Mini skirt","Sneakers"],
+      accessories:["Sunglasses","Cap","Beaded bracelet"],
+      description:"Bright, free energy that matches a sunny day." },
+
+    { id:"active_cloudy", title:"Active × Cloudy", mood:"Active", weather:"Cloudy",
+      hero:"assets_img/active_cloudy.jpg",
+      palette_text:"Red / Orange / Yellow (slightly toned down)",
+      items:["T-shirt + light cardigan","Lightweight pants"],
+      accessories:["Bucket hat","Small crossbody bag"],
+      description:"Stay active on cloudy days with light layers." },
+
+    { id:"active_rainy",  title:"Active × Rainy",  mood:"Active",  weather:"Rainy",
+      hero:"assets_img/active_rainy.jpg",
+      palette_text:"Red / Orange / Yellow with a neutral outer layer",
+      items:["Light rain jacket","Long pants","Water-resistant sneakers"],
+      accessories:["Umbrella or bucket hat","Practical backpack"],
+      description:"Add a bright inner layer under a rain-proof outer for energy." },
+
+    { id:"minimal_sunny", title:"Minimal × Sunny", mood:"Minimal", weather:"Sunny",
+      hero:"assets_img/minimal_sunny.jpg",
+      palette_text:"Beige / Light Blue / White (clean)",
+      items:["Light blue shirt","White pants"],
+      accessories:["Mini leather tote","Simple metal watch"],
+      description:"Clean, well-organized look with bright tone-on-tone colors." },
+
+    { id:"minimal_cloudy", title:"Minimal × Cloudy", mood:"Minimal", weather:"Cloudy",
+      hero:"assets_img/minimal_cloudy.jpg",
+      palette_text:"Beige / Light Blue / White (balanced)",
+      items:["Shirt + cardigan","Chino pants"],
+      accessories:["Slim belt","Minimal sneakers"],
+      description:"Soft mid-tones to keep a calm and balanced mood on cloudy days." },
+
+    { id:"minimal_rainy", title:"Minimal × Rainy", mood:"Minimal", weather:"Rainy",
+      hero:"assets_img/minimal_rainy.jpg",
+      palette_text:"Beige / Light Blue / White (rain-friendly)",
+      items:["Beige trench coat","Shirt","Slacks"],
+      accessories:["Mini tote bag","Metal watch"],
+      description:"Keep your silhouette clean and simple even on rainy days." },
+
+    { id:"cozy_sunny",   title:"Cozy × Sunny",   mood:"Cozy",   weather:"Sunny",
+      hero:"assets_img/cozy_sunny.jpg",
+      palette_text:"Navy / Black / Gray (lightweight cozy)",
+      items:["Light knit top","Relaxed-fit pants"],
+      accessories:["Soft light scarf","Canvas bag"],
+      description:"Soft knit and gentle tones for a relaxed, cozy mood." },
+
+    { id:"cozy_cloudy",  title:"Cozy × Cloudy",  mood:"Cozy",   weather:"Cloudy",
+      hero:"assets_img/cozy_cloudy.jpg",
+      palette_text:"Navy / Black / Gray (warm)",
+      items:["Knit sweater","Coat"],
+      accessories:["Scarf","Warm-textured bag"],
+      description:"Low-saturation tones and warm textures for comfort and stability." },
+
+    { id:"cozy_rainy",   title:"Cozy × Rainy",   mood:"Cozy",   weather:"Rainy",
+      hero:"assets_img/cozy_rainy.jpg",
+      palette_text:"Navy / Black / Gray (weather-ready)",
+      items:["Hooded coat","Dark jeans"],
+      accessories:["Water-resistant boots (Chelsea)","Umbrella"],
+      description:"Combine warmth and water protection to stay cozy in the rain." },
+
+    { id:"street_sunny", title:"Street × Sunny", mood:"Street", weather:"Sunny",
+      hero:"assets_img/street_sunny.jpg",
+      palette_text:"Purple / Brown / Green (light mix)",
+      items:["Graphic T-shirt","Cargo shorts"],
+      accessories:["Cap","Chain bracelet"],
+      description:"Lightweight pieces with street-style color points for sunny days." },
+
+    { id:"street_cloudy", title:"Street × Cloudy", mood:"Street", weather:"Cloudy",
+      hero:"assets_img/street_cloudy.jpg",
+      palette_text:"Purple / Brown / Green (muted)",
+      items:["Oversized hoodie","Wide-leg pants"],
+      accessories:["Chunky sneakers","Crossbody bag"],
+      description:"Stand out in gray weather with bold silhouettes and details." },
+
+    { id:"street_rainy", title:"Street × Rainy", mood:"Street", weather:"Rainy",
+      hero:"assets_img/street_rainy.jpg",
+      palette_text:"Purple / Brown / Green (tech mix)",
+      items:["Rain jacket","Cargo pants"],
+      accessories:["Water-repellent bucket hat","High-grip sneakers"],
+      description:"Techwear-inspired pieces that balance strong style and practicality." }
+  ];
+
+  // Render bar chart
+  function renderBars(list){
+    if(!$bars || !Array.isArray(list)) return;
+    $bars.innerHTML = '';
+
+    const top1 = list[0];
+
+    list.forEach(p=>{
+      const pct = Math.round(p.probability * 100);
+      const rawLabel = p.className.toLowerCase();
+
+      let key = "neutral";
+      if(rawLabel.includes("happy")) key = "happy";
+      else if(rawLabel.includes("sad")) key = "sad";
+      else if(rawLabel.includes("angry")) key = "angry";
+
+      const displayLabel = (p === top1)
+        ? `🔥 ${EMOJI[key]}`
+        : EMOJI[key];
+
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <div class="bar-label">${displayLabel}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%;"></div>
         </div>
-        <p style="margin:8px 0 0;color:#444">${card.description}</p>
-      </div>
-    `;
+        <div class="bar-pct">${pct}%</div>
+      `;
+      $bars.appendChild(row);
 
-    grid.appendChild(el);
+      setTimeout(() => {
+        row.querySelector(".bar-fill").classList.add("show");
+      }, 10);
+    });
+  }
+
+  // Render cards
+  const grid = document.getElementById('card-grid');
+  function renderCards(list){
+    if (!grid || !Array.isArray(list)) return;
+
+    grid.style.gridTemplateColumns = (window.innerWidth >= 960) ? '1fr 1fr' : '1fr';
+    grid.innerHTML = '';
+
+    list.forEach(card => {
+      const el = document.createElement('article');
+      el.className = 'rec-card';
+      el.style.cssText =
+        'border:1px solid #eee;' +
+        'border-radius:12px;' +
+        'overflow:hidden;' +
+        'background:#fff;' +
+        'box-shadow:0 6px 20px rgba(0,0,0,.06)';
+
+      el.innerHTML = `
+        <div style="aspect-ratio:4/3;background:#f0f0f0">
+          <img
+            src="${card.hero || 'assets_img/placeholder.jpg'}"
+            alt="${card.title}"
+            style="width:100%;height:100%;object-fit:cover"
+          >
+        </div>
+        <div style="padding:12px">
+          <h3 style="margin:0 0 6px;font-size:18px">${card.title}</h3>
+          <p style="margin:0 0 6px;color:#666">
+            <strong>${card.mood}</strong> · ${card.weather} ·
+            <span style="background:#f5f5f5;border-radius:8px;padding:2px 6px">
+              ${card.palette_text || ''}
+            </span>
+          </p>
+          <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+            <div>
+              <div style="font-weight:600;margin-bottom:4px">Items</div>
+              <ul style="margin:0;padding-left:18px">
+                ${(card.items || []).map(i => `<li>${i}</li>`).join('')}
+              </ul>
+            </div>
+            <div>
+              <div style="font-weight:600;margin-bottom:4px">Accessories</div>
+              <ul style="margin:0;padding-left:18px">
+                ${(card.accessories || []).map(a => `<li>${a}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+          <p style="margin:8px 0 0;color:#444">${card.description || ''}</p>
+        </div>
+      `;
+
+      grid.appendChild(el);
+    });
+  }
+
+  // 🌸 Hero → Prediction 화면 전환
+  document.getElementById("heroStart").addEventListener("click", () => {
+    const hero = document.getElementById("hero");
+    const mainPage = document.getElementById("mainPage");
+    const pred = document.getElementById("pred-section");
+
+    hero.classList.add("hiddenPage");
+
+    setTimeout(() => {
+      mainPage.classList.remove("hiddenPage");
+      mainPage.classList.add("showPage");
+      pred.classList.add("show");
+      pred.scrollIntoView({ behavior: "smooth" });
+    }, 300);
   });
-}
 
-/* ------------------------------
-  HERO TRANSITION
------------------------------- */
-document.getElementById("heroStart").addEventListener("click", ()=>{
-  const hero = document.getElementById("hero");
-  const mainPage = document.getElementById("mainPage");
-
-  hero.classList.add("hiddenPage");
-
-  setTimeout(()=>{
-    mainPage.classList.remove("hiddenPage");
-    mainPage.classList.add("showPage");
-    document.getElementById("pred-section").scrollIntoView({ behavior:"smooth" });
-  },300);
-});
-
-/* ------------------------------
-  INIT
------------------------------- */
-(async ()=>{
-  await loadModel();
-})();
+  // 레이아웃 변경 시 카드 레이아웃 재조정 (필요하면 확장)
+  window.addEventListener('resize',()=>{
+    // 필요하면 여기서 다시 renderCards 호출할 수 있음
+  });
 </script>
-
-</body>
-</html>
-
-
-
