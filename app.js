@@ -525,46 +525,66 @@ function renderBars(list) {
   });
 }
 
-/************************************************************
- * 15) RENDER CARDS  — split-card 레이아웃 적용
- ************************************************************/
-function renderCards(list) {
+function renderCards(list){
   if (!grid || !Array.isArray(list)) return;
 
-  grid.style.gridTemplateColumns = "1fr";
-  grid.innerHTML = "";
+  grid.style.gridTemplateColumns = "1fr";  // 1열 유지
+  grid.innerHTML = '';
 
   list.forEach(card => {
-    const el = document.createElement("article");
-    el.classList.add("rec-card", "split"); // ← split 적용
+    const el = document.createElement('article');
+    el.className = 'rec-card';
+    el.style.cssText =
+      'display:flex;' +
+      'gap:20px;' +
+      'align-items:flex-start;' +
+      'border:1px solid #eee;' +
+      'border-radius:12px;' +
+      'padding:16px;' +
+      'background:#fff;' +
+      'box-shadow:0 6px 20px rgba(0,0,0,.06);' +
+      'flex-wrap:wrap;';
 
-    el.innerHTML = `
-      <img src="${card.hero}" alt="${card.title}">
-
-      <div class="rec-content">
-        <h3>${card.title}</h3>
-
-        <div class="rec-meta">
-          ${card.mood} · ${card.weather}
-          <div class="rec-tag">${card.palette_text}</div>
-        </div>
-
-        <div>
-          <div class="rec-list-title">Items</div>
-          <ul>
-            ${(card.items || []).map(i => `<li>${i}</li>`).join("")}
-          </ul>
-
-          <div class="rec-list-title">Accessories</div>
-          <ul>
-            ${(card.accessories || []).map(a => `<li>${a}</li>`).join("")}
-          </ul>
-        </div>
-
-        <p class="rec-desc">${card.description}</p>
+    const heroImg = `
+      <div style="flex:0 0 360px; max-width:360px;">
+        <img
+          src="${card.hero || 'assets_img/placeholder.jpg'}"
+          alt="${card.title}"
+          style="width:100%; height:auto; border-radius:10px; object-fit:cover;"
+        >
       </div>
     `;
 
+    const textBlock = `
+      <div style="flex:1; min-width:260px;">
+        <h3 style="margin:0 0 6px; font-size:22px;">${card.title}</h3>
+
+        <p style="margin:0 0 6px; color:#666; line-height:1.4;">
+          <strong>${card.mood}</strong> · ${card.weather}<br>
+          <span style="background:#f5f5f5; border-radius:8px; padding:2px 6px;">
+            ${card.palette_text || ''}
+          </span>
+        </p>
+
+        <div style="margin-top:10px;">
+          <strong>Items</strong>
+          <ul style="margin:4px 0 10px; padding-left:18px;">
+            ${(card.items || []).map(i => `<li>${i}</li>`).join('')}
+          </ul>
+
+          <strong>Accessories</strong>
+          <ul style="margin:4px 0 10px; padding-left:18px;">
+            ${(card.accessories || []).map(a => `<li>${a}</li>`).join('')}
+          </ul>
+        </div>
+
+        <p style="margin:8px 0 0; color:#444; line-height:1.5;">
+          ${card.description || ''}
+        </p>
+      </div>
+    `;
+
+    el.innerHTML = heroImg + textBlock;
     grid.appendChild(el);
   });
 }
