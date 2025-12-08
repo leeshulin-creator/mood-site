@@ -445,3 +445,29 @@
     gap: 18px !important;
   }
   
+/* FIX: mainPage fade-in */
+#mainPage.showPage {
+  opacity: 1 !important;
+  pointer-events: auto;
+}
+
+.rec-card.split {
+  display: grid;
+  grid-template-columns: 42% 1fr;
+  gap: 16px;
+  padding: 16px;
+  align-items: center;
+}
+
+.rec-card.split img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.rec-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
