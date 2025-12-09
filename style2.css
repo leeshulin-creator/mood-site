@@ -451,3 +451,9 @@
   pointer-events: auto;
 }
 
+.rec-textbox {
+  border: 2px solid var(--primary);
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff9fc;
+}
