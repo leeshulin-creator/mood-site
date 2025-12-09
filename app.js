@@ -606,7 +606,7 @@ function renderCards(list){
     `;
 
     const textBlock = `
-      <div class="rec-textbox" style="flex:1; min-width:260px;">
+      <div class="rec-textbox" style="flex:1; min-width:260px; margin-bottom:12px;">
         <h3 style="margin:0 0 6px; font-size:22px;">${card.title}</h3>
 
         <p style="margin:0 0 6px; color:#666; line-height:1.4;">
@@ -634,7 +634,7 @@ function renderCards(list){
       </div>
     `;
 
-    el.innerHTML = heroImg + textBlock;
+    el.innerHTML = textBlock + heroImg;
     grid.appendChild(el);
   });
 }
