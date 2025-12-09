@@ -1,3 +1,26 @@
+// 🔊 SIMPLE TTS FUNCTION
+function speak(text) {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "en-US";   // 영어 음성
+  utter.rate = 1.1;       // 약간 빠르게
+  utter.pitch = 1;        // 기본 피치
+  speechSynthesis.speak(utter);
+}
+
+function playSoftBeep() {
+  const audio = new Audio("assets_audio/beep_soft.wav");
+  audio.volume = 0.25;
+  audio.play();
+}
+
+function playAlertBeep() {
+  const audio = new Audio("assets_audio/beep_alert.wav");
+  audio.volume = 0.25;
+  audio.play();
+}
+
+
+
 /************************************************************
  * 0) CONFIG
  ************************************************************/
@@ -465,6 +488,24 @@ async function autoSetWeather() {
         const overallLevel = Math.max(g10.level, g25.level);
         const maskMsg = maskMessageForLevel(overallLevel);
 
+        // 🔊 Weather voice summary
+        const summary = `Today's weather is ${w}, temperature ${weather.temp} degrees.`;
+
+        // Dust voice message
+        let dustVoice = `Air quality is ${g25.label}. `;
+        if (overallLevel === 2) dustVoice += "A KF80 mask is recommended.";
+        if (overallLevel === 3) dustVoice += "Air quality is very unhealthy. Please wear a KF94 mask.";
+
+        // Combine voice
+        speak(summary + " " + dustVoice);
+
+        // 🔔 Beep when dust is bad
+        if (overallLevel >= 2) {
+        playBeep();
+        setTimeout(playBeep, 500);  // 삐—살짝 여유 후 한 번 더
+        }
+
+
         // Render result in English
         $weatherResult.innerHTML = `
           Weather: <strong>${w}</strong><br>
@@ -475,6 +516,16 @@ async function autoSetWeather() {
             😷 ${maskMsg}
           </span>
         `;
+
+        // 🚨 Fine-dust-based alert sound
+if (overallLevel === 2) {
+  // Unhealthy → 부드러운 경고음
+  playSoftBeep();
+} else if (overallLevel === 3) {
+  // Very Unhealthy → 강한 경보음
+  playAlertBeep();
+}
+
       } catch (e) {
         console.error(e);
         $weatherResult.textContent = "Weather detection failed.";
