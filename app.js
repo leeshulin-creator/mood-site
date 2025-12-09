@@ -448,9 +448,6 @@ function maskMessageForLevel(level) {
 /************************************************************
  * 10) AUTO WEATHER DETECTION
  ************************************************************/
-/************************************************************
- * 10) AUTO WEATHER DETECTION
- ************************************************************/
 async function autoSetWeather() {
   if (!$weatherResult) return;
 
@@ -467,7 +464,6 @@ async function autoSetWeather() {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
 
-        // Fetch weather and dust data in parallel
         const [weather, dust] = await Promise.all([
           fetchWeatherByLatLon(lat, lon),
           fetchDustByLatLon(lat, lon)
@@ -476,31 +472,35 @@ async function autoSetWeather() {
         const w = mapCodeToWeatherText(weather.code);
         selectedWeather = w;
 
-        // Round dust values
         const pm10 = Math.round(dust.pm10);
         const pm25 = Math.round(dust.pm2_5);
 
-        // Grade each dust value
         const g10 = gradePm10(pm10);
         const g25 = gradePm25(pm25);
 
-        // Use the worse (higher) level for overall mask advice
         const overallLevel = Math.max(g10.level, g25.level);
         const maskMsg = maskMessageForLevel(overallLevel);
 
-        // 🔊 Weather voice summary
-        const summary = `Today's weather is ${w}, temperature ${weather.temp} degrees.`;
+        // 🎤 Voice output
+        const summary = `Today's weather is ${w}, and the temperature is ${weather.temp} degrees.`;
+        let dustVoice = `Fine dust level is ${g25.label}. `;
 
-        // Dust voice message
-        let dustVoice = `Air quality is ${g25.label}. `;
-        if (overallLevel === 2) dustVoice += "A KF80 mask is recommended.";
-        if (overallLevel === 3) dustVoice += "Air quality is very unhealthy. Please wear a KF94 mask.";
+        if (overallLevel === 2) {
+          dustVoice += "A KF80 mask is recommended.";
+        } else if (overallLevel === 3) {
+          dustVoice += "The air quality is very unhealthy. Please wear a KF94 mask.";
+        }
 
-        // Combine voice
         speak(summary + " " + dustVoice);
 
+        // 🔔 beep sound based on dust level
+        if (overallLevel === 2) {
+          playSoftBeep();
+        } else if (overallLevel === 3) {
+          playAlertBeep();
+        }
 
-        // Render result in English
+        // 📝 Display
         $weatherResult.innerHTML = `
           Weather: <strong>${w}</strong><br>
           Temperature: <strong>${weather.temp}°C</strong><br>
@@ -511,25 +511,19 @@ async function autoSetWeather() {
           </span>
         `;
 
-// 🚨 Fine-dust-based alert sound
-if (overallLevel === 2) {
-  playSoftBeep();     // Unhealthy → soft warning
-} else if (overallLevel === 3) {
-  playAlertBeep();    // Very unhealthy → strong alert
-}
-
-
       } catch (e) {
         console.error(e);
         $weatherResult.textContent = "Weather detection failed.";
       }
     },
+
     err => {
       console.error(err);
       $weatherResult.textContent = "Weather detection blocked.";
     }
   );
 }
+
 
 /************************************************************
  * 11) GO TO WEATHER STEP
