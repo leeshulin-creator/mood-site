@@ -479,6 +479,11 @@ function showFinalCard() {
         "1" +
         cardForRender.hero.substring(dotIndex);
     }
+    
+    if (base.description_male) {
+      cardForRender.description = base.description_male;
+    }
+    
   }
 
   // 4) 카드 렌더링
@@ -601,7 +606,7 @@ function renderCards(list){
     `;
 
     const textBlock = `
-      <div style="flex:1; min-width:260px;">
+      <div class="rec-textbox" style="flex:1; min-width:260px;">
         <h3 style="margin:0 0 6px; font-size:22px;">${card.title}</h3>
 
         <p style="margin:0 0 6px; color:#666; line-height:1.4;">
