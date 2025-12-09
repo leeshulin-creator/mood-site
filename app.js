@@ -595,44 +595,66 @@ function renderCards(list){
       'box-shadow:0 6px 20px rgba(0,0,0,.06);' +
       'flex-wrap:wrap;';
 
-    const heroImg = `
+      const heroImg = `
       <div style="flex:0 0 360px; max-width:360px;">
         <img
           src="${card.hero || 'assets_img/placeholder.jpg'}"
           alt="${card.title}"
-          style="width:100%; height:auto; border-radius:10px; object-fit:cover;"
+          style="width:100%; height:auto; border-radius:18px; object-fit:cover;"
         >
       </div>
-    `;
+    `;    
 
+    
+    
+    
     const textBlock = `
-      <div class="rec-textbox" style="flex:1; min-width:260px; margin-bottom:12px;">
-        <h3 style="margin:0 0 6px; font-size:22px;">${card.title}</h3>
-
-        <p style="margin:0 0 6px; color:#666; line-height:1.4;">
-          <strong>${card.mood}</strong> · ${card.weather}<br>
-          <span style="background:#f5f5f5; border-radius:8px; padding:2px 6px;">
-            ${card.palette_text || ''}
-          </span>
-        </p>
-
-        <div style="margin-top:10px;">
-          <strong>Items</strong>
-          <ul style="margin:4px 0 10px; padding-left:18px;">
-            ${(card.items || []).map(i => `<li>${i}</li>`).join('')}
-          </ul>
-
-          <strong>Accessories</strong>
-          <ul style="margin:4px 0 10px; padding-left:18px;">
-            ${(card.accessories || []).map(a => `<li>${a}</li>`).join('')}
-          </ul>
-        </div>
-
-        <p style="margin:8px 0 0; color:#444; line-height:1.5;">
-          ${card.description || ''}
-        </p>
+    <div class="rec-textbox" style="flex:1; min-width:260px; margin-bottom:12px;">
+      <h3 style="margin:0 0 6px; font-size:22px;">${card.title}</h3>
+  
+      <p style="margin:0 0 6px; color:#666; line-height:1.4;">
+        <strong>${card.mood}</strong> · ${card.weather}<br>
+        <span style="background:#f5f5f5; border-radius:8px; padding:2px 6px;">
+          ${card.palette_text || ''}
+        </span>
+      </p>
+  
+      <div style="margin-top:10px;">
+        <strong>Items</strong>
+        <ul style="margin:4px 0 10px; padding-left:18px;">
+          ${(card.items || []).map(i => `<li>${i}</li>`).join('')}
+        </ul>
+  
+        <strong>Accessories</strong>
+        <ul style="margin:4px 0 10px; padding-left:18px;">
+          ${(card.accessories || []).map(a => `<li>${a}</li>`).join('')}
+        </ul>
       </div>
-    `;
+  
+      <p style="margin:8px 0 0; color:#444; line-height:1.5;">
+        ${card.description || ''}
+      </p>
+  
+      <!-- 🌟 Why this works (설득 구조) -->
+      <p style="margin-top:12px; color:#333; font-size:15px; font-weight:600;">
+        Why this works:
+      </p>
+      <p style="margin-top:4px; color:#555; line-height:1.5;">
+        ${card.reason || "This recommendation fits your detected mood and weather conditions."}
+      </p>
+  
+      <!-- 🌟 Explainable AI 영역 -->
+      <div class="rec-explain">
+        <strong>How this recommendation was generated:</strong><br>
+        • Facial expression recognized using a Teachable Machine model<br>
+        • Weather detected via Open-Meteo API<br>
+        • Gender-based asset selection logic applied<br>
+        • Matched using a mood-to-style mapping system
+      </div>
+  
+    </div>
+  `;
+  
 
     el.innerHTML = textBlock + heroImg;
     grid.appendChild(el);
