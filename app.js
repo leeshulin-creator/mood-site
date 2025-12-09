@@ -373,16 +373,22 @@ async function fetchDustByLatLon(lat, lon) {
   if (!res.ok) throw new Error("Air quality API error " + res.status);
 
   const data = await res.json();
+  if (!data.current) throw new Error("Invalid air quality API response (no current)");
 
-  if (!data.current || typeof data.current.pm10 === "undefined") {
-    throw new Error("Invalid air quality API response");
+  const c = data.current;
+
+  // pm10/pm2_5 값이 배열이거나 숫자거나 둘 다 처리
+  let pm10 = Array.isArray(c.pm10) ? c.pm10[0] : c.pm10;
+  let pm25 = Array.isArray(c.pm2_5) ? c.pm2_5[0] : c.pm2_5;
+
+  if (typeof pm10 !== "number" || typeof pm25 !== "number") {
+    throw new Error("Invalid air quality values");
   }
 
-  return {
-    pm10: data.current.pm10,
-    pm2_5: data.current.pm2_5
-  };
+  return { pm10, pm2_5: pm25 };
 }
+
+
 
 // 🌡 Dust level grading (English labels)
 function gradePm10(v) {
