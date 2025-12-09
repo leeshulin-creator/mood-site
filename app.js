@@ -45,6 +45,7 @@ const $btnReset = el("btnReset");
 const $btnNextWeather = el("btnNextWeather");
 
 const $weatherSection = el("weather-section");
+const $genderSection = el("gender-section");
 const $finalSection = el("final-section");
 const $predSection = el("pred-section");
 
@@ -59,6 +60,7 @@ let step = 1;
 let selectedEmotion = null;
 let selectedStyle = null;
 let selectedWeather = null;
+let selectedGender = null; 
 
 let model, maxPredictions;
 let webcamStream = null;
@@ -420,31 +422,72 @@ function gotoWeatherStep() {
   autoSetWeather();
 }
 
-$weatherSection.querySelectorAll("button[data-weather]").forEach(btn => {
+function gotoGenderStep() {
+  // 날씨 섹션 숨기고 성별 섹션 보여주기
+  $weatherSection.classList.add("hidden");
+  $genderSection.classList.remove("hidden");
+}
+
+document.querySelectorAll("#gender-section button[data-gender]").forEach(btn => {
   btn.addEventListener("click", () => {
-    selectedWeather = btn.getAttribute("data-weather");
+    selectedGender = btn.getAttribute("data-gender");
     showFinalCard();
   });
 });
+
+
+
+
+$weatherSection.querySelectorAll("button[data-weather]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    selectedWeather = btn.getAttribute("data-weather");
+    gotoGenderStep();
+  });
+});
+
 
 
 /************************************************************
  * 12) FINAL RECOMMENDATIONS
  ************************************************************/
 function showFinalCard() {
-  if (!selectedStyle || !selectedWeather) {
-    announce("Missing weather or emotion.", "muted");
+  if (!selectedStyle || !selectedWeather || !selectedGender) {
+    announce("Missing weather, emotion, or gender.", "muted");
     return;
   }
 
-  const target = RECOMMENDATIONS.find(
+  // 1) 기본 추천 카드 찾기 (성별은 여기서 안 씀)
+  const base = RECOMMENDATIONS.find(
     card => card.mood === selectedStyle && card.weather === selectedWeather
   );
 
-  renderCards(target ? [target] : []);
+  if (!base) {
+    renderCards([]);
+    announce("No matching recommendation found.", "muted");
+    return;
+  }
 
+  // 2) 렌더용으로 얕은 복사 (원본 데이터 보호)
+  const cardForRender = { ...base };
+
+  // 3) 성별이 Male이면 파일명 뒤에 '1' 붙인 버전 사용
+  if (selectedGender === "Male" && cardForRender.hero) {
+    const dotIndex = cardForRender.hero.lastIndexOf(".");
+    if (dotIndex > -1) {
+      cardForRender.hero =
+        cardForRender.hero.substring(0, dotIndex) +
+        "1" +
+        cardForRender.hero.substring(dotIndex);
+    }
+  }
+
+  // 4) 카드 렌더링
+  renderCards([cardForRender]);
+
+  // 5) 화면 전환 (성별 섹션 숨기고 Final 보이기)
   $predSection.classList.add("hidden");
   $weatherSection.classList.add("hidden");
+  $genderSection.classList.add("hidden");
   $finalSection.classList.remove("hidden");
 
   $finalSection.scrollIntoView({ behavior: "smooth" });
@@ -458,9 +501,11 @@ $btnRestart.addEventListener("click", () => {
   selectedEmotion = null;
   selectedStyle = null;
   selectedWeather = null;
+  selectedGender = null;   
 
   $predSection.classList.remove("hidden");
   $weatherSection.classList.add("hidden");
+  $genderSection.classList.add("hidden"); 
   $finalSection.classList.add("hidden");
 
   $pred.textContent = "Waiting for results…";
