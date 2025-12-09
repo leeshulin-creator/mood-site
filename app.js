@@ -1,5 +1,6 @@
 
 // 🔊 SIMPLE TTS FUNCTION
+// 🔊 SIMPLE TTS FUNCTION
 function speak(text) {
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = "en-US";   // 영어 음성
@@ -8,21 +9,23 @@ function speak(text) {
   speechSynthesis.speak(utter);
 }
 
-function playSoftBeep() {
-  if (!soundEnabled) return;     // ⬅ 중요
-  const audio = new Audio("assets_audio/beep_soft.wav");
-  audio.volume = 0.35;
-  audio.play();
-}
+// 🔊 사운드 허용 여부
+let soundEnabled = false;
 
-function playAlertBeep() {
-  if (!soundEnabled) return;     // ⬅ 중요
-  const audio = new Audio("assets_audio/beep_alert.wav");
+function playSoftBeep() {
+  if (!soundEnabled) return;   // 아직 사운드 허용 안 되었으면 재생 안 함
+  const audio = new Audio("assets_audio/beep_soft.mp3");
   audio.volume = 0.4;
   audio.play();
 }
 
-let soundEnabled = false; 
+function playAlertBeep() {
+  if (!soundEnabled) return;
+  const audio = new Audio("assets_audio/beep_alert.mp3");
+  audio.volume = 0.4;
+  audio.play();
+}
+
 
 
 /************************************************************
@@ -81,17 +84,22 @@ const $btnCapture = el("btnCapture");
 const $countdown = el("countdown");
 const $weatherResult = el("weatherResult");
 const grid = document.getElementById("card-grid");
-document.getElementById("enableSoundBtn").addEventListener("click", () => {
-  soundEnabled = true;
 
-  const a = new Audio("assets_audio/beep_soft.wav");
-  a.volume = 0.01;  
-  a.play().then(() => {
-    console.log("Audio unlocked");
-  });
+// 🔓 사용자 클릭으로 오디오 언락
+function unlockAudio() {
+  if (soundEnabled) return; // 이미 허용된 경우 재시도 안 함
 
-  alert("Sound enabled!");
-});
+  const test = new Audio("assets_audio/beep_soft.mp3");
+  test.volume = 0.01;
+  test.play()
+    .then(() => {
+      console.log("Audio unlocked");
+      soundEnabled = true;
+    })
+    .catch(err => {
+      console.log("Audio unlock failed", err);
+    });
+}
 
 // State
 let step = 1;
@@ -371,7 +379,11 @@ function setEmotionAndEnableNext(emote) {
   });
 });
 
-$btnNextWeather.addEventListener("click", gotoWeatherStep);
+$btnNextWeather.addEventListener("click", () => {
+  unlockAudio();      // 👈 먼저 오디오 권한 언락
+  gotoWeatherStep();  // 👈 그다음 날씨 단계로 이동
+});
+
 
 
 /************************************************************
