@@ -1,3 +1,4 @@
+
 // 🔊 SIMPLE TTS FUNCTION
 function speak(text) {
   const utter = new SpeechSynthesisUtterance(text);
@@ -8,17 +9,20 @@ function speak(text) {
 }
 
 function playSoftBeep() {
+  if (!soundEnabled) return;     // ⬅ 중요
   const audio = new Audio("assets_audio/beep_soft.wav");
-  audio.volume = 0.25;
+  audio.volume = 0.35;
   audio.play();
 }
 
 function playAlertBeep() {
+  if (!soundEnabled) return;     // ⬅ 중요
   const audio = new Audio("assets_audio/beep_alert.wav");
-  audio.volume = 0.25;
+  audio.volume = 0.4;
   audio.play();
 }
 
+let soundEnabled = false; 
 
 
 /************************************************************
@@ -77,6 +81,17 @@ const $btnCapture = el("btnCapture");
 const $countdown = el("countdown");
 const $weatherResult = el("weatherResult");
 const grid = document.getElementById("card-grid");
+document.getElementById("enableSoundBtn").addEventListener("click", () => {
+  soundEnabled = true;
+
+  const a = new Audio("assets_audio/beep_soft.wav");
+  a.volume = 0.01;  
+  a.play().then(() => {
+    console.log("Audio unlocked");
+  });
+
+  alert("Sound enabled!");
+});
 
 // State
 let step = 1;
