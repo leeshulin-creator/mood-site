@@ -499,12 +499,6 @@ async function autoSetWeather() {
         // Combine voice
         speak(summary + " " + dustVoice);
 
-        // 🔔 Beep when dust is bad
-        if (overallLevel >= 2) {
-        playBeep();
-        setTimeout(playBeep, 500);  // 삐—살짝 여유 후 한 번 더
-        }
-
 
         // Render result in English
         $weatherResult.innerHTML = `
@@ -517,14 +511,13 @@ async function autoSetWeather() {
           </span>
         `;
 
-        // 🚨 Fine-dust-based alert sound
+// 🚨 Fine-dust-based alert sound
 if (overallLevel === 2) {
-  // Unhealthy → 부드러운 경고음
-  playSoftBeep();
+  playSoftBeep();     // Unhealthy → soft warning
 } else if (overallLevel === 3) {
-  // Very Unhealthy → 강한 경보음
-  playAlertBeep();
+  playAlertBeep();    // Very unhealthy → strong alert
 }
+
 
       } catch (e) {
         console.error(e);
