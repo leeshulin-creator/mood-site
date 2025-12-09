@@ -363,7 +363,62 @@ function mapCodeToWeatherText(code) {
   return "Rainy";
 }
 
+// 🌫 Fetch fine dust (PM10) and ultrafine dust (PM2.5)
+async function fetchDustByLatLon(lat, lon) {
+  const url =
+    `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}` +
+    `&current=pm10,pm2_5`;
 
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Air quality API error " + res.status);
+
+  const data = await res.json();
+
+  if (!data.current || typeof data.current.pm10 === "undefined") {
+    throw new Error("Invalid air quality API response");
+  }
+
+  return {
+    pm10: data.current.pm10,
+    pm2_5: data.current.pm2_5
+  };
+}
+
+// 🌡 Dust level grading (English labels)
+function gradePm10(v) {
+  if (v <= 30) return { label: "Good", level: 0 };
+  if (v <= 80) return { label: "Moderate", level: 1 };
+  if (v <= 150) return { label: "Unhealthy", level: 2 };
+  return { label: "Very Unhealthy", level: 3 };
+}
+
+function gradePm25(v) {
+  if (v <= 15) return { label: "Good", level: 0 };
+  if (v <= 35) return { label: "Moderate", level: 1 };
+  if (v <= 75) return { label: "Unhealthy", level: 2 };
+  return { label: "Very Unhealthy", level: 3 };
+}
+
+// 😷 One-line mask recommendation by overall level
+function maskMessageForLevel(level) {
+  if (level === 0) {
+    return "No mask needed. The air quality is clean today.";
+  }
+  if (level === 1) {
+    return "A light KF-AD mask is recommended if you are sensitive.";
+  }
+  if (level === 2) {
+    return "A KF80 or higher mask is recommended.";
+  }
+  // level === 3
+  return "A KF94 mask is strongly recommended; limit outdoor activities.";
+}
+
+
+
+/************************************************************
+ * 10) AUTO WEATHER DETECTION
+ ************************************************************/
 /************************************************************
  * 10) AUTO WEATHER DETECTION
  ************************************************************/
@@ -383,14 +438,36 @@ async function autoSetWeather() {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
 
-        const { code, temp } = await fetchWeatherByLatLon(lat, lon);
-        const w = mapCodeToWeatherText(code);
+        // Fetch weather and dust data in parallel
+        const [weather, dust] = await Promise.all([
+          fetchWeatherByLatLon(lat, lon),
+          fetchDustByLatLon(lat, lon)
+        ]);
 
+        const w = mapCodeToWeatherText(weather.code);
         selectedWeather = w;
 
+        // Round dust values
+        const pm10 = Math.round(dust.pm10);
+        const pm25 = Math.round(dust.pm2_5);
+
+        // Grade each dust value
+        const g10 = gradePm10(pm10);
+        const g25 = gradePm25(pm25);
+
+        // Use the worse (higher) level for overall mask advice
+        const overallLevel = Math.max(g10.level, g25.level);
+        const maskMsg = maskMessageForLevel(overallLevel);
+
+        // Render result in English
         $weatherResult.innerHTML = `
-          Detected weather: <strong>${w}</strong><br>
-          Temperature: <strong>${temp}°C</strong>
+          Weather: <strong>${w}</strong><br>
+          Temperature: <strong>${weather.temp}°C</strong><br>
+          Fine dust (PM10): <strong>${pm10} µg/m³</strong> (${g10.label})<br>
+          Ultrafine dust (PM2.5): <strong>${pm25} µg/m³</strong> (${g25.label})<br>
+          <span style="display:inline-block;margin-top:6px;">
+            😷 ${maskMsg}
+          </span>
         `;
       } catch (e) {
         console.error(e);
@@ -403,7 +480,6 @@ async function autoSetWeather() {
     }
   );
 }
-
 
 /************************************************************
  * 11) GO TO WEATHER STEP
