@@ -1049,6 +1049,10 @@ const RECOMMENDATIONS = [
  * 17) HERO PAGE → MAIN PAGE (fade transition)
  ************************************************************/
 document.getElementById("heroStart").addEventListener("click", () => {
+
+  // 🔓 첫 사용자 클릭에서 오디오 권한 언락
+  unlockAudio();
+
   const hero = document.getElementById("hero");
   const mainPage = document.getElementById("mainPage");
   const pred = document.getElementById("pred-section");
