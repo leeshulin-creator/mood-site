@@ -808,95 +808,241 @@ function renderCards(list){
   });
 }
 
-
 /************************************************************
- * 16) RECOMMENDATION DATA
+ * 16) RECOMMENDATION DATA  (여성 description 유지 + 남성 팔레트/아이템만 적용)
  ************************************************************/
 const RECOMMENDATIONS = [
-  { id:"active_sunny", title:"Active × Sunny", mood:"Active", weather:"Sunny",
+
+  /* -------------------- ACTIVE × SUNNY -------------------- */
+  {
+    id:"active_sunny",
+    title:"Active × Sunny",
+    mood:"Active",
+    weather:"Sunny",
     hero:"assets_img/active_sunny.jpg",
     palette_text:"Red / Orange / Yellow",
-    items:["Cotton T-shirt","Mini skirt","Sneakers"],
-    accessories:["Sunglasses","Cap","Beaded bracelet"],
-    description:"Bright energy for sunny weather." },
+    palette_text_male:"Red / Black / Brown",
 
-  { id:"active_cloudy", title:"Active × Cloudy", mood:"Active", weather:"Cloudy",
+    items:["Cotton T-shirt","Mini skirt","Sneakers"],
+    items_male:["Hoodie","Bermuda shorts","Work boots"],
+
+    accessories:["Sunglasses","Cap","Beaded bracelet"],
+    accessories_male:["Bandana","Belt","Smartphone"],
+
+    description:"Bright energy for sunny weather."
+  },
+
+  /* -------------------- ACTIVE × CLOUDY -------------------- */
+  {
+    id:"active_cloudy",
+    title:"Active × Cloudy",
+    mood:"Active",
+    weather:"Cloudy",
     hero:"assets_img/active_cloudy.jpg",
     palette_text:"Red / Orange / Yellow (toned down)",
-    items:["T-shirt + cardigan","Light pants"],
-    accessories:["Bucket hat","Crossbody bag"],
-    description:"Stay light and energetic on cloudy days." },
+    palette_text_male:"Yellow / Navy / Denim Blue",
 
-  { id:"active_rainy", title:"Active × Rainy", mood:"Active", weather:"Rainy",
+    items:["T-shirt + cardigan","Light pants"],
+    items_male:["Hoodie","Denim jacket","Wide denim pants"],
+
+    accessories:["Bucket hat","Crossbody bag"],
+    accessories_male:["Glasses","Wrist watch","Sneakers"],
+
+    description:"Stay light and energetic on cloudy days."
+  },
+
+  /* -------------------- ACTIVE × RAINY -------------------- */
+  {
+    id:"active_rainy",
+    title:"Active × Rainy",
+    mood:"Active",
+    weather:"Rainy",
     hero:"assets_img/active_rainy.jpg",
     palette_text:"Bright inner + rain outer",
-    items:["Rain jacket","Long pants"],
-    accessories:["Umbrella","Backpack"],
-    description:"Energy inside, protection outside." },
+    palette_text_male:"Red / Light Blue / Yellow",
 
-  { id:"minimal_sunny", title:"Minimal × Sunny", mood:"Minimal", weather:"Sunny",
+    items:["Rain jacket","Long pants"],
+    items_male:["Hooded jacket","Denim pants","Sneakers"],
+
+    accessories:["Umbrella","Backpack"],
+    accessories_male:["Umbrella","Cross bag","Stud belt"],
+
+    description:"Energy inside, protection outside."
+  },
+
+  /* -------------------- MINIMAL × SUNNY -------------------- */
+  {
+    id:"minimal_sunny",
+    title:"Minimal × Sunny",
+    mood:"Minimal",
+    weather:"Sunny",
     hero:"assets_img/minimal_sunny.jpg",
     palette_text:"Beige / Light Blue / White",
-    items:["Light blue shirt","White pants"],
-    accessories:["Leather tote","Metal watch"],
-    description:"Clean bright minimal look." },
+    palette_text_male:"Black / Dark Gray / Silver",
 
-  { id:"minimal_cloudy", title:"Minimal × Cloudy", mood:"Minimal", weather:"Cloudy",
+    items:["Light blue shirt","White pants"],
+    items_male:["Leather jacket","Turtleneck top","Slacks"],
+
+    accessories:["Leather tote","Metal watch"],
+    accessories_male:["Tote bag","Sunglasses","Wrist watch"],
+
+    description:"Clean bright minimal look."
+  },
+
+  /* -------------------- MINIMAL × CLOUDY -------------------- */
+  {
+    id:"minimal_cloudy",
+    title:"Minimal × Cloudy",
+    mood:"Minimal",
+    weather:"Cloudy",
     hero:"assets_img/minimal_cloudy.jpg",
     palette_text:"Soft beige & blue",
-    items:["Shirt + cardigan","Chinos"],
-    accessories:["Slim belt","Minimal sneakers"],
-    description:"Balanced tones for cloudy day stability." },
+    palette_text_male:"Black / Gray / Light Blue",
 
-  { id:"minimal_rainy", title:"Minimal × Rainy", mood:"Minimal", weather:"Rainy",
+    items:["Shirt + cardigan","Chinos"],
+    items_male:["Long coat","Hoodie","Straight jeans"],
+
+    accessories:["Slim belt","Minimal sneakers"],
+    accessories_male:["Cap","Cross bag","Sneakers"],
+
+    description:"Balanced tones for cloudy day stability."
+  },
+
+  /* -------------------- MINIMAL × RAINY -------------------- */
+  {
+    id:"minimal_rainy",
+    title:"Minimal × Rainy",
+    mood:"Minimal",
+    weather:"Rainy",
     hero:"assets_img/minimal_rainy.jpg",
     palette_text:"Rain-friendly neutrals",
-    items:["Beige trench","Shirt","Slacks"],
-    accessories:["Tote bag","Watch"],
-    description:"Keep it clean even in the rain." },
+    palette_text_male:"Black / Dark Gray / Brown",
 
-  { id:"cozy_sunny", title:"Cozy × Sunny", mood:"Cozy", weather:"Sunny",
+    items:["Beige trench","Shirt","Slacks"],
+    items_male:["Knit top","Slacks","Sneakers"],
+
+    accessories:["Tote bag","Watch"],
+    accessories_male:["Umbrella","Leather shoulder bag","Minimal shoes"],
+
+    description:"Keep it clean even in the rain."
+  },
+
+  /* -------------------- COZY × SUNNY -------------------- */
+  {
+    id:"cozy_sunny",
+    title:"Cozy × Sunny",
+    mood:"Cozy",
+    weather:"Sunny",
     hero:"assets_img/cozy_sunny.jpg",
     palette_text:"Navy / Black / Gray",
-    items:["Light knit","Relaxed pants"],
-    accessories:["Soft scarf","Canvas bag"],
-    description:"Relaxed cozy vibe with light knit." },
+    palette_text_male:"Blue / White / Light Gray",
 
-  { id:"cozy_cloudy", title:"Cozy × Cloudy", mood:"Cozy", weather:"Cloudy",
+    items:["Light knit","Relaxed pants"],
+    items_male:["Check shirt","White T-shirt","Denim pants"],
+
+    accessories:["Soft scarf","Canvas bag"],
+    accessories_male:["Headphones","Sneakers","Minimal bracelet"],
+
+    description:"Relaxed cozy vibe with light knit."
+  },
+
+  /* -------------------- COZY × CLOUDY -------------------- */
+  {
+    id:"cozy_cloudy",
+    title:"Cozy × Cloudy",
+    mood:"Cozy",
+    weather:"Cloudy",
     hero:"assets_img/cozy_cloudy.jpg",
     palette_text:"Warm knit tones",
-    items:["Knit sweater","Coat"],
-    accessories:["Scarf","Warm bag"],
-    description:"Comfort-focused winter-like cozy look." },
+    palette_text_male:"Navy / Gray / Black",
 
-  { id:"cozy_rainy", title:"Cozy × Rainy", mood:"Cozy", weather:"Rainy",
+    items:["Knit sweater","Coat"],
+    items_male:["Wool coat","Hoodie","Slacks"],
+
+    accessories:["Scarf","Warm bag"],
+    accessories_male:["Knit beanie","Loafers","Winter cap"],
+
+    description:"Comfort-focused winter-like cozy look."
+  },
+
+  /* -------------------- COZY × RAINY -------------------- */
+  {
+    id:"cozy_rainy",
+    title:"Cozy × Rainy",
+    mood:"Cozy",
+    weather:"Rainy",
     hero:"assets_img/cozy_rainy.jpg",
     palette_text:"Dark cozy palette",
-    items:["Hood coat","Dark jeans"],
-    accessories:["Boots","Umbrella"],
-    description:"Warm + waterproof = perfect cozy rain outfit." },
+    palette_text_male:"Navy / Black / Brown",
 
-  { id:"street_sunny", title:"Street × Sunny", mood:"Street", weather:"Sunny",
+    items:["Hood coat","Dark jeans"],
+    items_male:["Windbreaker jacket","Slacks","Loafers"],
+
+    accessories:["Boots","Umbrella"],
+    accessories_male:["Umbrella","Leather belt","Dress shoes"],
+
+    description:"Warm + waterproof = perfect cozy rain outfit."
+  },
+
+  /* -------------------- STREET × SUNNY -------------------- */
+  {
+    id:"street_sunny",
+    title:"Street × Sunny",
+    mood:"Street",
+    weather:"Sunny",
     hero:"assets_img/street_sunny.jpg",
     palette_text:"Purple / Brown / Green",
-    items:["Graphic tee","Cargo shorts"],
-    accessories:["Cap","Chain"],
-    description:"Cool tones for a sunny street style." },
+    palette_text_male:"Olive / Brown / Black",
 
-  { id:"street_cloudy", title:"Street × Cloudy", mood:"Street", weather:"Cloudy",
+    items:["Graphic tee","Cargo shorts"],
+    items_male:["Long-sleeve T-shirt","Cargo pants","Loafers"],
+
+    accessories:["Cap","Chain"],
+    accessories_male:["Backpack","Chain necklace","Headphones"],
+
+    description:"Cool tones for a sunny street style."
+  },
+
+  /* -------------------- STREET × CLOUDY -------------------- */
+  {
+    id:"street_cloudy",
+    title:"Street × Cloudy",
+    mood:"Street",
+    weather:"Cloudy",
     hero:"assets_img/street_cloudy.jpg",
     palette_text:"Muted street tone",
-    items:["Oversized hoodie","Wide pants"],
-    accessories:["Chunky sneakers","Bag"],
-    description:"Large fit to stand out in gray weather." },
+    palette_text_male:"Khaki / Brown / Dark Green",
 
-  { id:"street_rainy", title:"Street × Rainy", mood:"Street", weather:"Rainy",
+    items:["Oversized hoodie","Wide pants"],
+    items_male:["Leather jacket","Cargo pants","Work boots"],
+
+    accessories:["Chunky sneakers","Bag"],
+    accessories_male:["Cross bag","Baseball cap","Glasses"],
+
+    description:"Large fit to stand out in gray weather."
+  },
+
+  /* -------------------- STREET × RAINY -------------------- */
+  {
+    id:"street_rainy",
+    title:"Street × Rainy",
+    mood:"Street",
+    weather:"Rainy",
     hero:"assets_img/street_rainy.jpg",
     palette_text:"Techwear mix",
+    palette_text_male:"Olive / Gray / Black",
+
     items:["Rain jacket","Cargo pants"],
+    items_male:["Waterproof parka","Wide pants","Sneakers"],
+
     accessories:["Bucket hat","Grip sneakers"],
-    description:"Tech-inspired street rain outfit." }
+    accessories_male:["Umbrella","Cross bag","Baseball cap"],
+
+    description:"Tech-inspired street rain outfit."
+  }
+
 ];
+
 
 
 /************************************************************
