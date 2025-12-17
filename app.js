@@ -321,7 +321,9 @@ async function predictOnce(src) {
   const ctx = $canvas.getContext("2d");
   ctx.drawImage(src, 0, 0, W, H);
 
+  console.time("prediction latency");
   const preds = await model.predict($canvas);
+  console.timeEnd("prediction latency");
   const sorted = preds.sort((a, b) => b.probability - a.probability).slice(0, TOP_K);
 
   $pred.textContent = sorted
